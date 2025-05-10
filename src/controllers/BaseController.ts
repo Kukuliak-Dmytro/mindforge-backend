@@ -1,18 +1,8 @@
-import { Request, Response, NextFunction } from 'express';
-import { AppError } from '../types/AppError.ts';
-import { ApiResponse, ResponseBuilder } from '../types/ApiResponse.ts';
+import { Response } from 'express';
+import { AppError } from '../types/AppError';
+import { ApiResponse, ResponseBuilder } from '../types/ApiResponse';
 
 export abstract class BaseController {
-  protected abstract executeImpl(req: Request, res: Response, next: NextFunction): Promise<void | any>;
-
-  public async execute(req: Request, res: Response, next: NextFunction): Promise<void> {
-    try {
-      await this.executeImpl(req, res, next);
-    } catch (err) {
-      next(err);
-    }
-  }
-
   protected sendSuccess<T>(res: Response, data?: T, message?: string): Response {
     const response: ApiResponse<T> = ResponseBuilder.success(data, message);
     return res.status(200).json(response);

@@ -1,5 +1,6 @@
 import { Router } from 'express';
-import healthRoutes from './healthRoutes.ts';
+import healthRoutes from './healthRoutes';
+
 
 const router = Router();
 
