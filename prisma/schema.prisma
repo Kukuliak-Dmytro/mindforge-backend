@@ -11,15 +11,19 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
+enum UserRole {
+  STUDENT
+  TUTOR
+}
+
 model User {
   id        String   @id @default(uuid())
   email     String   @unique
-  fullName  String
+  firstName String
+  lastName  String
   avatarUrl String?
   createdAt DateTime @default(now())
-  isTutor   Boolean  @default(false)
-  isStudent Boolean  @default(false)
-
+  role      UserRole @default(STUDENT)
 
   // Relations
   profile         Profile?
