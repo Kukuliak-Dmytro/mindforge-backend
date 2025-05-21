@@ -42,6 +42,7 @@ model Profile {
   userId      String   @unique
   bio         String?
   contactInfo String?
+  phone       String?
   updatedAt   DateTime @updatedAt
 
   // Relations
