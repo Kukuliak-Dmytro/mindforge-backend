@@ -23,7 +23,9 @@
   "dependencies": {
     "@prisma/client": "^6.7.0",
     "@supabase/supabase-js": "^2.49.4",
+    "@types/cors": "^2.8.18",
     "@types/jsonwebtoken": "^9.0.9",
+    "cors": "^2.8.5",
     "express": "^5.1.0",
     "jsonwebtoken": "^9.0.2",
     "mindforge-backend": "file:",

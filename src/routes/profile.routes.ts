@@ -1,10 +1,14 @@
 import { Router } from 'express';
-import { updateProfile } from '../controllers/profile.controller';
+import { getProfile, updateProfile } from '../controllers/profile.controller';
 import { authenticateToken } from '../middleware/auth';
 
 const router = Router();
 
-// Update profile route
-router.put('/update', authenticateToken, updateProfile);
+// All routes require authentication
+router.use(authenticateToken);
+
+// Profile routes
+router.get('/', getProfile);
+router.patch('/update', updateProfile);
 
 export default router; 
