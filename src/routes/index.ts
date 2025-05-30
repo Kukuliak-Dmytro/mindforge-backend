@@ -1,10 +1,12 @@
 import { Router } from 'express';
 import healthRoutes from './healthRoutes';
-import profileRoutes from './profile.routes';
+import tutorRoutes from './tutor.routes';
+import studentRoutes from './student.routes';
 
 const router = Router();
 
 router.use('/health', healthRoutes);
-router.use('/profile', profileRoutes);
+router.use('/tutor', tutorRoutes);
+router.use('/student', studentRoutes);
 
 export default router;

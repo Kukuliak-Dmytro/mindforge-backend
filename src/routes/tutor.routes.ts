@@ -1,35 +1,17 @@
 import { Router } from 'express';
-import {
-  updateTutorProfile,
-  addTutorExperience,
-  deleteTutorExperience,
-  addTutorEducation,
-  deleteTutorEducation,
-  addTutorSubject,
-  deleteTutorSubject,
-  getTutorProfile,
-} from '../controllers/tutor.controller';
+import { tutorProfileController } from '../controllers/tutorProfile.controller';
 import { authenticateToken } from '../middleware/auth';
+import { AuthRequest } from '../types/User';
 
 const router = Router();
 
-// All routes require authentication
+// All tutor routes require authentication
 router.use(authenticateToken);
 
-// Tutor profile routes
-router.get('/profile', getTutorProfile);
-router.put('/profile', updateTutorProfile);
+// Get tutor profile
+router.get('/profile', (req, res) => tutorProfileController.getTutorProfile(req as AuthRequest, res));
 
-// Experience routes
-router.post('/experience', addTutorExperience);
-router.delete('/experience/:experienceId', deleteTutorExperience);
-
-// Education routes
-router.post('/education', addTutorEducation);
-router.delete('/education/:educationId', deleteTutorEducation);
-
-// Subject routes
-router.post('/subject', addTutorSubject);
-router.delete('/subject/:subjectId', deleteTutorSubject);
+// Update tutor profile (consolidated endpoint for all tutor profile updates)
+router.patch('/profile', (req, res) => tutorProfileController.updateTutorProfile(req as AuthRequest, res));
 
 export default router; 
