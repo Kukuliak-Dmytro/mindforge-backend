@@ -28,35 +28,13 @@ const tutorSubjectSchema = z.object({
   price: z.number().positive('Price must be positive'),
 });
 
-const updateTutorProfileSchema = z.object({
-  // Basic profile info
-  firstName: z.string().min(1, 'First name is required').optional(),
-  lastName: z.string().min(1, 'Last name is required').optional(),
-  email: z.string().email('Invalid email format').optional(),
+const updateProfileSchema = z.object({
+  firstName: z.string().min(1),
+  lastName: z.string().min(1),
+  email: z.string().email(),
   phone: z.string().optional(),
   bio: z.string().optional(),
-  contactInfo: z.string().optional(),
-  
-  // Education updates
-  education: z.object({
-    add: z.array(tutorEducationSchema).optional(),
-    remove: z.array(z.string().uuid('Invalid education ID')).optional(),
-  }).optional(),
-  
-  // Experience updates
-  experience: z.object({
-    add: z.array(tutorExperienceSchema).optional(),
-    remove: z.array(z.string().uuid('Invalid experience ID')).optional(),
-  }).optional(),
-  
-  // Subject updates
-  subjects: z.object({
-    add: z.array(tutorSubjectSchema).optional(),
-    remove: z.array(z.object({
-      subjectId: z.string().uuid('Invalid subject ID'),
-      categoryId: z.string().uuid('Invalid category ID'),
-    })).optional(),
-  }).optional(),
+  // ... rest of the schema
 });
 
 class TutorProfileController extends BaseController {
@@ -105,7 +83,8 @@ class TutorProfileController extends BaseController {
         avatarUrl: user.avatarUrl,
         bio: user.bio,
         phone: user.phone,
-        contactInfo: user.contactInfo,
+        updatedAt: user.updatedAt,
+        createdAt: user.createdAt
       },
       education: user.education,
       experiences: user.experiences,
@@ -129,13 +108,13 @@ class TutorProfileController extends BaseController {
       this.throwError('User is not a tutor', 403);
     }
 
-    const validatedData = updateTutorProfileSchema.parse(req.body);
+    const validatedData = updateProfileSchema.parse(req.body);
 
     // Start a transaction to handle all updates
     const result = await this.prisma.$transaction(async (tx) => {
       // Update basic profile info if provided
       if (validatedData.firstName || validatedData.lastName || validatedData.email || 
-          validatedData.phone || validatedData.bio || validatedData.contactInfo) {
+          validatedData.phone || validatedData.bio) {
         await tx.user.update({
           where: { id: userId },
           data: {
@@ -143,8 +122,7 @@ class TutorProfileController extends BaseController {
             lastName: validatedData.lastName,
             email: validatedData.email,
             phone: validatedData.phone,
-            bio: validatedData.bio,
-            contactInfo: validatedData.contactInfo,
+            bio: validatedData.bio
           },
         });
       }
@@ -260,7 +238,7 @@ class TutorProfileController extends BaseController {
         avatarUrl: result.avatarUrl,
         bio: result.bio,
         phone: result.phone,
-        contactInfo: result.contactInfo,
+        updatedAt: result.updatedAt
       },
       education: result.education,
       experiences: result.experiences,

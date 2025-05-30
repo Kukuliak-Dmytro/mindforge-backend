@@ -8,12 +8,11 @@ const prisma = new PrismaClient();
 
 // Validation schema for profile update
 const updateProfileSchema = z.object({
-  firstName: z.string().min(1, 'First name is required'),
-  lastName: z.string().min(1, 'Last name is required'),
-  email: z.string().email('Invalid email format'),
+  firstName: z.string().min(1),
+  lastName: z.string().min(1),
+  email: z.string().email(),
   phone: z.string().optional(),
-  bio: z.string().optional(),
-  contactInfo: z.string().optional(),
+  bio: z.string().optional()
 });
 
 class StudentProfileController extends BaseController {
@@ -89,9 +88,8 @@ class StudentProfileController extends BaseController {
         avatarUrl: user.avatarUrl,
         bio: user.bio,
         phone: user.phone,
-        contactInfo: user.contactInfo,
         updatedAt: user.updatedAt,
-        createdAt: user.createdAt,
+        createdAt: user.createdAt
       },
       studentOrders: user.studentOrders,
       studentReviews: user.studentReviews,
@@ -124,9 +122,8 @@ class StudentProfileController extends BaseController {
         lastName: validatedData.lastName,
         email: validatedData.email,
         phone: validatedData.phone,
-        bio: validatedData.bio,
-        contactInfo: validatedData.contactInfo,
-      },
+        bio: validatedData.bio
+      }
     });
 
     this.sendSuccess(res, {
@@ -136,8 +133,7 @@ class StudentProfileController extends BaseController {
       email: updatedUser.email,
       phone: updatedUser.phone,
       bio: updatedUser.bio,
-      contactInfo: updatedUser.contactInfo,
-      updatedAt: updatedUser.updatedAt,
+      updatedAt: updatedUser.updatedAt
     }, 'Student profile updated successfully');
   };
 }

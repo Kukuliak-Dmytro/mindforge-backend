@@ -24,7 +24,6 @@ model User {
   role           UserRole          @default(STUDENT)
   bio            String?
   phone          String?
-  contactInfo    String?
 
   // Common relations
   sentMessages   Message[]

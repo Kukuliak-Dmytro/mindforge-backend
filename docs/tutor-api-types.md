@@ -35,7 +35,6 @@ interface TutorBasicInfo {
   avatarUrl: string | null;
   bio: string | null;
   phone: string | null;
-  contactInfo: string | null;
   updatedAt: ISODateString;
   createdAt: ISODateString;
 }
@@ -86,13 +85,11 @@ interface TutorProfileResponse {
 
 // Tutor profile update request
 interface UpdateTutorProfileRequest {
-  // Basic profile info (all fields optional)
   firstName?: string;
   lastName?: string;
   email?: string;
   phone?: string;
   bio?: string;
-  contactInfo?: string;
   
   // Education updates
   education?: {
@@ -144,7 +141,6 @@ interface StudentBasicInfo {
   avatarUrl: string | null;
   bio: string | null;
   phone: string | null;
-  contactInfo: string | null;
   updatedAt: ISODateString;
   createdAt: ISODateString;
 }
@@ -204,7 +200,6 @@ interface UpdateStudentProfileRequest {
   email: string;
   phone?: string;
   bio?: string;
-  contactInfo?: string;
 }
 ```
 
@@ -230,7 +225,6 @@ interface UpdateStudentProfileRequest {
       "avatarUrl": "https://example.com/avatar.jpg",
       "bio": "Experienced math tutor",
       "phone": "+1234567890",
-      "contactInfo": "Available on weekends",
       "updatedAt": "2024-03-20T10:00:00.000Z",
       "createdAt": "2024-01-01T00:00:00.000Z"
     },
@@ -346,7 +340,6 @@ interface UpdateStudentProfileRequest {
       "avatarUrl": "https://example.com/avatar.jpg",
       "bio": "Computer Science student",
       "phone": "+1234567890",
-      "contactInfo": "Available evenings",
       "updatedAt": "2024-03-20T10:00:00.000Z",
       "createdAt": "2024-01-01T00:00:00.000Z"
     },
@@ -408,8 +401,7 @@ interface UpdateStudentProfileRequest {
   "lastName": "Smith",
   "email": "jane.smith@example.com",
   "phone": "+1234567890",
-  "bio": "Updated bio",
-  "contactInfo": "Available on weekends"
+  "bio": "Updated bio"
 }
 
 // Example Response:
@@ -422,7 +414,6 @@ interface UpdateStudentProfileRequest {
     "email": "jane.smith@example.com",
     "phone": "+1234567890",
     "bio": "Updated bio",
-    "contactInfo": "Available on weekends",
     "updatedAt": "2024-03-20T11:00:00.000Z"
   }
 }
@@ -438,7 +429,6 @@ interface UpdateStudentProfileRequest {
    - `email`: Required if provided, must be valid email format
    - `phone`: Optional, no format validation
    - `bio`: Optional, no length restrictions
-   - `contactInfo`: Optional, no length restrictions
 
 2. Education:
    - `institution`: Required, minimum length 1
@@ -466,7 +456,6 @@ interface UpdateStudentProfileRequest {
    - `email`: Required, must be valid email format
    - `phone`: Optional, no format validation
    - `bio`: Optional, no length restrictions
-   - `contactInfo`: Optional, no length restrictions
 
 ## Important Notes
 
