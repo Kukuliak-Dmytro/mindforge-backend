@@ -22,19 +22,20 @@ export const getProfile = async (req: Request, res: Response, next: NextFunction
       res.status(401).json({ message: 'Unauthorized' });
       return;
     }
-
+    
     const user = await prisma.user.findUnique({
       where: { id: userId },
       include: {
-        // Include tutor-specific data if user is a tutor
+        // Include tutor-specific data
         education: true,
         experiences: true,
-        tutorSubjects: {
+        subjects: {
           include: {
             subject: true,
+            category: true,
           },
         },
-        // Include student-specific data if user is a student
+        // Include student-specific data
         studentOrders: {
           include: {
             subject: true,
@@ -51,7 +52,7 @@ export const getProfile = async (req: Request, res: Response, next: NextFunction
           orderBy: {
             createdAt: 'desc',
           },
-          take: 5, // Get only 5 most recent orders
+          take: 5,
         },
         tutorOrders: {
           include: {
@@ -69,9 +70,8 @@ export const getProfile = async (req: Request, res: Response, next: NextFunction
           orderBy: {
             createdAt: 'desc',
           },
-          take: 5, // Get only 5 most recent orders
+          take: 5,
         },
-        // Include reviews
         studentReviews: {
           include: {
             tutor: {
@@ -86,7 +86,7 @@ export const getProfile = async (req: Request, res: Response, next: NextFunction
           orderBy: {
             createdAt: 'desc',
           },
-          take: 5, // Get only 5 most recent reviews
+          take: 5,
         },
         tutorReviews: {
           include: {
@@ -102,7 +102,7 @@ export const getProfile = async (req: Request, res: Response, next: NextFunction
           orderBy: {
             createdAt: 'desc',
           },
-          take: 5, // Get only 5 most recent reviews
+          take: 5,
         },
       },
     });
@@ -111,11 +111,12 @@ export const getProfile = async (req: Request, res: Response, next: NextFunction
       res.status(404).json({ message: 'User not found' });
       return;
     }
+    
 
     // Calculate average rating for tutors
     let averageRating = null;
-    if (user.role === 'TUTOR' && user.tutorReviews.length > 0) {
-      const totalRating = user.tutorReviews.reduce((sum, review) => sum + review.rating, 0);
+    if (user.role === 'TUTOR' && user.tutorReviews && user.tutorReviews.length > 0) {
+      const totalRating = user.tutorReviews.reduce((sum: number, review) => sum + review.rating, 0);
       averageRating = totalRating / user.tutorReviews.length;
     }
 
@@ -136,7 +137,7 @@ export const getProfile = async (req: Request, res: Response, next: NextFunction
       ...(user.role === 'TUTOR' && {
         education: user.education,
         experiences: user.experiences,
-        tutorSubjects: user.tutorSubjects,
+        tutorSubjects: user.subjects,
         tutorOrders: user.tutorOrders,
         tutorReviews: user.tutorReviews,
         averageRating,

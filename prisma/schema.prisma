@@ -14,7 +14,7 @@ enum UserRole {
 }
 
 model User {
-  id             String            @id @default(uuid())
+  id             String            @id @default(uuid()) @db.Uuid
   email          String            @unique
   firstName      String
   lastName       String
@@ -32,77 +32,70 @@ model User {
   studentReviews Review[]          @relation("StudentReviews")
 
   // Tutor specific relations
-  tutorProfile   TutorProfile?
   tutorOrders    Order[]           @relation("TutorOrders")
   tutorReviews   Review[]          @relation("TutorReviews")
-}
-
-model TutorProfile {
-  id           String            @id @default(uuid())
-  userId       String            @unique
-  education    TutorEducation[]
-  experiences  TutorExperience[]
-  subjects     TutorSubject[]
-  user         User              @relation(fields: [userId], references: [id])
+  education      TutorEducation[]
+  experiences    TutorExperience[]
+  subjects       TutorSubject[]
 }
 
 model TutorEducation {
-  id           String       @id @default(uuid())
-  tutorId      String
+  id           String    @id @default(uuid()) @db.Uuid
+  userId       String    @db.Uuid
   institution  String
   fieldOfStudy String
   degree       String
   startDate    DateTime
   endDate      DateTime?
-  tutor        TutorProfile @relation(fields: [tutorId], references: [id])
+  user         User      @relation(fields: [userId], references: [id])
 }
 
 model TutorExperience {
-  id          String       @id @default(uuid())
-  tutorId     String
+  id          String    @id @default(uuid()) @db.Uuid
+  userId      String    @db.Uuid
   institution String
   title       String
   startDate   DateTime
   endDate     DateTime?
-  tutor       TutorProfile @relation(fields: [tutorId], references: [id])
+  user        User      @relation(fields: [userId], references: [id])
+}
+
+model TutorSubject {
+  id         String    @id @default(uuid()) @db.Uuid
+  userId     String    @db.Uuid
+  subjectId  String    @db.Uuid
+  categoryId String    @db.Uuid
+  price      Decimal
+
+  // Relations
+  user       User      @relation(fields: [userId], references: [id])
+  subject    Subject   @relation(fields: [subjectId], references: [id])
+  category   Category  @relation(fields: [categoryId], references: [id])
+
+  @@unique([userId, subjectId, categoryId])
 }
 
 model Subject {
-  id            String         @id @default(uuid())
+  id            String         @id @default(uuid()) @db.Uuid
   name          String         @unique
   tutorSubjects TutorSubject[]
   orders        Order[]
 }
 
 model Category {
-  id            String         @id @default(uuid())
+  id            String         @id @default(uuid()) @db.Uuid
   name          String         @unique
   isRecurring   Boolean        @default(false)
   tutorSubjects TutorSubject[]
   orders        Order[]
 }
 
-model TutorSubject {
-  id         String    @id @default(uuid())
-  tutorId    String
-  subjectId  String
-  categoryId String
-  price      Decimal   // Price for this subject in this category
-
-  // Relations
-  tutor      TutorProfile @relation(fields: [tutorId], references: [id])
-  subject    Subject      @relation(fields: [subjectId], references: [id])
-  category   Category     @relation(fields: [categoryId], references: [id])
-
-  @@unique([tutorId, subjectId, categoryId])
-}
-
 model Order {
-  id                String    @id @default(uuid())
-  studentId         String
-  tutorId           String
-  subjectId         String
-  categoryId        String
+  id                String    @id @default(uuid()) @db.Uuid
+  studentId         String    @db.Uuid
+  tutorId           String    @db.Uuid
+  subjectId         String    @db.Uuid
+  categoryId        String    @db.Uuid
   title             String
   description       String?
   createdAt         DateTime  @default(now())
@@ -122,8 +115,8 @@ model Order {
 }
 
 model Session {
-  id             String    @id @default(uuid())
-  orderId        String
+  id             String    @id @default(uuid()) @db.Uuid
+  orderId        String    @db.Uuid
   scheduledStart DateTime
   scheduledEnd   DateTime
   actualStart    DateTime?
@@ -134,23 +127,23 @@ model Session {
 }
 
 model Review {
-  id        String   @id @default(uuid())
-  orderId   String
-  studentId String
-  tutorId   String
+  id        String    @id @default(uuid()) @db.Uuid
+  orderId   String    @db.Uuid
+  studentId String    @db.Uuid
+  tutorId   String    @db.Uuid
   rating    Int
   comment   String?
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
   
   // Relations
-  order     Order    @relation(fields: [orderId], references: [id])
-  student   User     @relation("StudentReviews", fields: [studentId], references: [id])
-  tutor     User     @relation("TutorReviews", fields: [tutorId], references: [id])
+  order     Order     @relation(fields: [orderId], references: [id])
+  student   User      @relation("StudentReviews", fields: [studentId], references: [id])
+  tutor     User      @relation("TutorReviews", fields: [tutorId], references: [id])
 }
 
 model Chat {
-  id        String    @id @default(uuid())
-  orderId   String    @unique
+  id        String    @id @default(uuid()) @db.Uuid
+  orderId   String    @unique @db.Uuid
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   
@@ -160,14 +153,14 @@ model Chat {
 }
 
 model Message {
-  id        String   @id @default(uuid())
-  chatId    String
-  senderId  String
+  id        String    @id @default(uuid()) @db.Uuid
+  chatId    String    @db.Uuid
+  senderId  String    @db.Uuid
   content   String
-  createdAt DateTime @default(now())
-  isRead    Boolean  @default(false)
+  createdAt DateTime  @default(now())
+  isRead    Boolean   @default(false)
   
   // Relations
-  chat      Chat     @relation(fields: [chatId], references: [id])
-  sender    User     @relation(fields: [senderId], references: [id])
+  chat      Chat      @relation(fields: [chatId], references: [id])
+  sender    User      @relation(fields: [senderId], references: [id])
 }
