@@ -10,6 +10,8 @@ const updateProfileSchema = z.object({
   lastName: z.string().min(1, 'Last name is required'),
   email: z.string().email('Invalid email format'),
   phone: z.string().optional(),
+  bio: z.string().optional(),
+  contactInfo: z.string().optional(),
 });
 
 // Get user profile (works for both students and tutors)
@@ -24,7 +26,6 @@ export const getProfile = async (req: Request, res: Response, next: NextFunction
     const user = await prisma.user.findUnique({
       where: { id: userId },
       include: {
-        profile: true,
         // Include tutor-specific data if user is a tutor
         education: true,
         experiences: true,
@@ -126,7 +127,10 @@ export const getProfile = async (req: Request, res: Response, next: NextFunction
       lastName: user.lastName,
       avatarUrl: user.avatarUrl,
       role: user.role,
-      profile: user.profile,
+      bio: user.bio,
+      phone: user.phone,
+      contactInfo: user.contactInfo,
+      updatedAt: user.updatedAt,
       createdAt: user.createdAt,
       // Role-specific data
       ...(user.role === 'TUTOR' && {
@@ -164,40 +168,30 @@ export const updateProfile = async (req: Request, res: Response, next: NextFunct
 
     const validatedData = updateProfileSchema.parse(req.body);
 
-    // Update user data
+    // Update user data with profile fields
     const updatedUser = await prisma.user.update({
       where: { id: userId },
       data: {
         firstName: validatedData.firstName,
         lastName: validatedData.lastName,
         email: validatedData.email,
-      },
-    });
-
-    // Update or create profile with phone number
-    const updatedProfile = await prisma.profile.upsert({
-      where: { userId },
-      update: {
         phone: validatedData.phone,
-      },
-      create: {
-        userId,
-        phone: validatedData.phone,
+        bio: validatedData.bio,
+        contactInfo: validatedData.contactInfo,
       },
     });
 
     res.status(200).json({
       message: 'Profile updated successfully',
       data: {
-        user: {
-          id: updatedUser.id,
-          firstName: updatedUser.firstName,
-          lastName: updatedUser.lastName,
-          email: updatedUser.email,
-        },
-        profile: {
-          phone: updatedProfile.phone,
-        },
+        id: updatedUser.id,
+        firstName: updatedUser.firstName,
+        lastName: updatedUser.lastName,
+        email: updatedUser.email,
+        phone: updatedUser.phone,
+        bio: updatedUser.bio,
+        contactInfo: updatedUser.contactInfo,
+        updatedAt: updatedUser.updatedAt,
       },
     });
   } catch (error) {

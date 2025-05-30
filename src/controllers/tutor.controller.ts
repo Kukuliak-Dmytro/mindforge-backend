@@ -22,7 +22,8 @@ const tutorEducationSchema = z.object({
 
 const tutorSubjectSchema = z.object({
   subjectId: z.string().uuid('Invalid subject ID'),
-  hourlyRate: z.number().positive('Hourly rate must be positive'),
+  categoryId: z.string().uuid('Invalid category ID'),
+  price: z.number().positive('Price must be positive'),
 });
 
 // Update tutor profile
@@ -44,17 +45,16 @@ export const updateTutorProfile = async (req: Request, res: Response, next: Next
       return;
     }
 
-    // Update user role if not already a tutor
-    if (user.role !== 'TUTOR') {
-      await prisma.user.update({
-        where: { id: userId },
-        data: { role: 'TUTOR' },
-      });
-    }
+    // Create or update tutor profile
+    const tutorProfile = await prisma.tutorProfile.upsert({
+      where: { userId },
+      create: { userId },
+      update: {},
+    });
 
     res.status(200).json({
       message: 'Tutor profile updated successfully',
-      data: { userId },
+      data: { tutorProfileId: tutorProfile.id },
     });
   } catch (error) {
     console.error('Error updating tutor profile:', error);
@@ -71,11 +71,21 @@ export const addTutorExperience = async (req: Request, res: Response, next: Next
       return;
     }
 
+    // Get tutor profile
+    const tutorProfile = await prisma.tutorProfile.findUnique({
+      where: { userId },
+    });
+
+    if (!tutorProfile) {
+      res.status(404).json({ message: 'Tutor profile not found' });
+      return;
+    }
+
     const validatedData = tutorExperienceSchema.parse(req.body);
 
     const experience = await prisma.tutorExperience.create({
       data: {
-        userId,
+        tutorId: tutorProfile.id,
         ...validatedData,
       },
     });
@@ -108,11 +118,21 @@ export const deleteTutorExperience = async (req: Request, res: Response, next: N
       return;
     }
 
+    // Get tutor profile
+    const tutorProfile = await prisma.tutorProfile.findUnique({
+      where: { userId },
+    });
+
+    if (!tutorProfile) {
+      res.status(404).json({ message: 'Tutor profile not found' });
+      return;
+    }
+
     // Verify the experience belongs to the tutor
     const experience = await prisma.tutorExperience.findFirst({
       where: {
         id: experienceId,
-        userId,
+        tutorId: tutorProfile.id,
       },
     });
 
@@ -141,11 +161,21 @@ export const addTutorEducation = async (req: Request, res: Response, next: NextF
       return;
     }
 
+    // Get tutor profile
+    const tutorProfile = await prisma.tutorProfile.findUnique({
+      where: { userId },
+    });
+
+    if (!tutorProfile) {
+      res.status(404).json({ message: 'Tutor profile not found' });
+      return;
+    }
+
     const validatedData = tutorEducationSchema.parse(req.body);
 
     const education = await prisma.tutorEducation.create({
       data: {
-        userId,
+        tutorId: tutorProfile.id,
         ...validatedData,
       },
     });
@@ -178,11 +208,21 @@ export const deleteTutorEducation = async (req: Request, res: Response, next: Ne
       return;
     }
 
+    // Get tutor profile
+    const tutorProfile = await prisma.tutorProfile.findUnique({
+      where: { userId },
+    });
+
+    if (!tutorProfile) {
+      res.status(404).json({ message: 'Tutor profile not found' });
+      return;
+    }
+
     // Verify the education belongs to the tutor
     const education = await prisma.tutorEducation.findFirst({
       where: {
         id: educationId,
-        userId,
+        tutorId: tutorProfile.id,
       },
     });
 
@@ -211,23 +251,44 @@ export const addTutorSubject = async (req: Request, res: Response, next: NextFun
       return;
     }
 
+    // Get tutor profile
+    const tutorProfile = await prisma.tutorProfile.findUnique({
+      where: { userId },
+    });
+
+    if (!tutorProfile) {
+      res.status(404).json({ message: 'Tutor profile not found' });
+      return;
+    }
+
     const validatedData = tutorSubjectSchema.parse(req.body);
 
-    // Verify subject exists
-    const subject = await prisma.subject.findUnique({
-      where: { id: validatedData.subjectId },
-    });
+    // Verify subject and category exist
+    const [subject, category] = await Promise.all([
+      prisma.subject.findUnique({
+        where: { id: validatedData.subjectId },
+      }),
+      prisma.category.findUnique({
+        where: { id: validatedData.categoryId },
+      }),
+    ]);
 
     if (!subject) {
       res.status(404).json({ message: 'Subject not found' });
       return;
     }
 
+    if (!category) {
+      res.status(404).json({ message: 'Category not found' });
+      return;
+    }
+
     const tutorSubject = await prisma.tutorSubject.create({
       data: {
-        tutorId: userId,
+        tutorId: tutorProfile.id,
         subjectId: validatedData.subjectId,
-        hourlyRate: validatedData.hourlyRate,
+        categoryId: validatedData.categoryId,
+        price: validatedData.price,
       },
     });
 
@@ -252,18 +313,29 @@ export const addTutorSubject = async (req: Request, res: Response, next: NextFun
 export const deleteTutorSubject = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const userId = req.user?.id;
-    const { subjectId } = req.params;
+    const { subjectId, categoryId } = req.params;
 
     if (!userId) {
       res.status(401).json({ message: 'Unauthorized' });
       return;
     }
 
+    // Get tutor profile
+    const tutorProfile = await prisma.tutorProfile.findUnique({
+      where: { userId },
+    });
+
+    if (!tutorProfile) {
+      res.status(404).json({ message: 'Tutor profile not found' });
+      return;
+    }
+
     // Verify the subject belongs to the tutor
     const tutorSubject = await prisma.tutorSubject.findFirst({
       where: {
-        tutorId: userId,
+        tutorId: tutorProfile.id,
         subjectId,
+        categoryId,
       },
     });
 
@@ -274,9 +346,10 @@ export const deleteTutorSubject = async (req: Request, res: Response, next: Next
 
     await prisma.tutorSubject.delete({
       where: {
-        tutorId_subjectId: {
-          tutorId: userId,
+        tutorId_subjectId_categoryId: {
+          tutorId: tutorProfile.id,
           subjectId,
+          categoryId,
         },
       },
     });
@@ -297,33 +370,54 @@ export const getTutorProfile = async (req: Request, res: Response, next: NextFun
       return;
     }
 
-    const tutor = await prisma.user.findUnique({
+    const user = await prisma.user.findUnique({
       where: { id: userId },
       include: {
-        profile: true,
-        education: true,
-        experiences: true,
-        tutorSubjects: {
+        tutorProfile: {
           include: {
-            subject: true,
+            education: true,
+            experiences: true,
+            subjects: {
+              include: {
+                subject: true,
+                category: true,
+              },
+            },
           },
         },
       },
     });
 
-    if (!tutor) {
-      res.status(404).json({ message: 'Tutor not found' });
+    if (!user) {
+      res.status(404).json({ message: 'User not found' });
       return;
     }
 
-    if (tutor.role !== 'TUTOR') {
+    if (user.role !== 'TUTOR') {
       res.status(403).json({ message: 'User is not a tutor' });
+      return;
+    }
+
+    if (!user.tutorProfile) {
+      res.status(404).json({ message: 'Tutor profile not found' });
       return;
     }
 
     res.status(200).json({
       message: 'Tutor profile retrieved successfully',
-      data: tutor,
+      data: {
+        user: {
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          avatarUrl: user.avatarUrl,
+          bio: user.bio,
+          phone: user.phone,
+          contactInfo: user.contactInfo,
+        },
+        tutorProfile: user.tutorProfile,
+      },
     });
   } catch (error) {
     console.error('Error getting tutor profile:', error);
