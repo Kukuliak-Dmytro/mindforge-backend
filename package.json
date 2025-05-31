@@ -6,7 +6,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "npx tsx api.ts",
-    "dev": "npx tsx api.ts"
+    "dev": "nodemon --watch src/**/*.ts --exec npx tsx api.ts"
   },
   "keywords": [],
   "author": "",

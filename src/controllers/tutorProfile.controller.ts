@@ -29,12 +29,26 @@ const tutorSubjectSchema = z.object({
 });
 
 const updateProfileSchema = z.object({
-  firstName: z.string().min(1),
-  lastName: z.string().min(1),
-  email: z.string().email(),
+  firstName: z.string().min(1).optional(),
+  lastName: z.string().min(1).optional(),
+  email: z.string().email().optional(),
   phone: z.string().optional(),
   bio: z.string().optional(),
-  // ... rest of the schema
+  education: z.object({
+    add: z.array(tutorEducationSchema).optional(),
+    remove: z.array(z.string().uuid()).optional()
+  }).optional(),
+  experience: z.object({
+    add: z.array(tutorExperienceSchema).optional(),
+    remove: z.array(z.string().uuid()).optional()
+  }).optional(),
+  subjects: z.object({
+    add: z.array(tutorSubjectSchema).optional(),
+    remove: z.array(z.object({
+      subjectId: z.string().uuid(),
+      categoryId: z.string().uuid()
+    })).optional()
+  }).optional()
 });
 
 class TutorProfileController extends BaseController {

@@ -1,11 +1,14 @@
 import { Request } from 'express';
-export interface JwtPayload {
-    id: string;
-    name: string;
-    email: string;
+import { JwtPayload } from 'jsonwebtoken';
 
+export type UserRole = 'STUDENT' | 'TUTOR' | 'ADMIN';
+
+export interface User extends JwtPayload {
+  id: string;
+  email: string;
+  role: UserRole;
 }
 
 export interface AuthRequest extends Request {
-    user?: JwtPayload;
+  user?: User;
 }
