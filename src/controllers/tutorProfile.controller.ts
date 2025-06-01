@@ -127,7 +127,7 @@ class TutorProfileController extends BaseController {
     const validatedData = updateProfileSchema.parse(req.body);
 
     // Start a transaction to handle all updates
-    const result = await this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx:any) => {
       // Update email, display name, and phone in Supabase Auth if provided
       if ((validatedData.email && validatedData.email !== user.email) || validatedData.firstName || validatedData.lastName || validatedData.phone) {
         const updatePayload: any = {};

@@ -6,7 +6,12 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "npx tsx api.ts",
-    "dev": "nodemon --watch src/**/*.ts --exec npx tsx api.ts"
+    "dev": "nodemon --watch src/**/*.ts --exec npx tsx api.ts",
+    "docker:remove": "docker stop mindforge-backend 2>nul || echo Not running && docker rm -f mindforge-backend 2>nul || echo Not found",
+    "docker:rebuild": "npm run docker:remove && docker build --no-cache -t mindforge-backend .",
+    "docker:run": "npm run docker:remove && docker run -d --name mindforge-backend -p 4000:4000 --env-file .env mindforge-backend",
+    "docker:restart": "docker restart mindforge-backend",
+    "docker:stop": "docker stop mindforge-backend 2>nul || echo Not running && docker rm mindforge-backend 2>nul || echo Not found"
   },
   "keywords": [],
   "author": "",
@@ -28,7 +33,6 @@
     "cors": "^2.8.5",
     "express": "^5.1.0",
     "jsonwebtoken": "^9.0.2",
-    "mindforge-backend": "file:",
     "nodemon": "^3.1.10",
     "zod": "^3.24.4"
   }
