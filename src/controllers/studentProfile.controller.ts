@@ -8,11 +8,12 @@ const prisma = new PrismaClient();
 
 // Validation schema for profile update
 const updateProfileSchema = z.object({
-  firstName: z.string().min(1),
-  lastName: z.string().min(1),
-  email: z.string().email(),
+  firstName: z.string().min(1).optional(),
+  lastName: z.string().min(1).optional(),
+  email: z.string().email().optional(),
   phone: z.string().optional(),
-  bio: z.string().optional()
+  bio: z.string().optional(),
+  avatarUrl: z.string().optional()
 });
 
 class StudentProfileController extends BaseController {
@@ -118,11 +119,12 @@ class StudentProfileController extends BaseController {
     const updatedUser = await this.prisma.user.update({
       where: { id: userId },
       data: {
-        firstName: validatedData.firstName,
-        lastName: validatedData.lastName,
-        email: validatedData.email,
-        phone: validatedData.phone,
-        bio: validatedData.bio
+        ...(validatedData.firstName !== undefined && { firstName: validatedData.firstName }),
+        ...(validatedData.lastName !== undefined && { lastName: validatedData.lastName }),
+        ...(validatedData.email !== undefined && { email: validatedData.email }),
+        ...(validatedData.phone !== undefined && { phone: validatedData.phone }),
+        ...(validatedData.bio !== undefined && { bio: validatedData.bio }),
+        ...(validatedData.avatarUrl !== undefined && { avatarUrl: validatedData.avatarUrl })
       }
     });
 
@@ -133,6 +135,7 @@ class StudentProfileController extends BaseController {
       email: updatedUser.email,
       phone: updatedUser.phone,
       bio: updatedUser.bio,
+      avatarUrl: updatedUser.avatarUrl,
       updatedAt: updatedUser.updatedAt
     }, 'Student profile updated successfully');
   };

@@ -3,6 +3,7 @@ import { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
 import { BaseController } from './BaseController';
 import { AuthRequest } from '../types/User';
+import { supabaseAdmin } from '../clients/supabaseAdmin';
 
 const prisma = new PrismaClient();
 
@@ -34,6 +35,7 @@ const updateProfileSchema = z.object({
   email: z.string().email().optional(),
   phone: z.string().optional(),
   bio: z.string().optional(),
+  avatarUrl: z.string().optional(),
   education: z.object({
     add: z.array(tutorEducationSchema).optional(),
     remove: z.array(z.string().uuid()).optional()
@@ -126,17 +128,39 @@ class TutorProfileController extends BaseController {
 
     // Start a transaction to handle all updates
     const result = await this.prisma.$transaction(async (tx) => {
-      // Update basic profile info if provided
-      if (validatedData.firstName || validatedData.lastName || validatedData.email || 
-          validatedData.phone || validatedData.bio) {
+      // Update email, display name, and phone in Supabase Auth if provided
+      if ((validatedData.email && validatedData.email !== user.email) || validatedData.firstName || validatedData.lastName || validatedData.phone) {
+        const updatePayload: any = {};
+        if (validatedData.email && validatedData.email !== user.email) {
+          updatePayload.email = validatedData.email;
+        }
+        if (validatedData.phone && validatedData.phone !== user.phone) {
+          updatePayload.phone = validatedData.phone;
+        }
+        // Always set user_metadata if any of these fields are present
+        if (validatedData.firstName || validatedData.lastName || validatedData.phone) {
+          const firstName = validatedData.firstName !== undefined ? validatedData.firstName : user.firstName || '';
+          const lastName = validatedData.lastName !== undefined ? validatedData.lastName : user.lastName || '';
+          const phone = validatedData.phone !== undefined ? validatedData.phone : user.phone || '';
+          updatePayload.user_metadata = {
+            display_name: `${firstName} ${lastName}`.trim(),
+            phone,
+          };
+        }
+        const { error } = await supabaseAdmin.auth.admin.updateUserById(userId, updatePayload);
+        if (error) {
+          this.throwError('Failed to update user in Supabase Auth: ' + error.message, 400);
+        }
+      }
+      // Update basic profile info if provided (excluding email, which is handled above)
+      if (validatedData.firstName || validatedData.lastName || validatedData.bio || validatedData.avatarUrl) {
         await tx.user.update({
           where: { id: userId },
           data: {
             firstName: validatedData.firstName,
             lastName: validatedData.lastName,
-            email: validatedData.email,
-            phone: validatedData.phone,
-            bio: validatedData.bio
+            bio: validatedData.bio,
+            avatarUrl: validatedData.avatarUrl
           },
         });
       }
