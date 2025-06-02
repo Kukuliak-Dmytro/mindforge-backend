@@ -36,6 +36,10 @@ model User {
   education      TutorEducation[]
   experiences    TutorExperience[]
   subjects       TutorSubject[]
+
+  // Relations for invites
+  tutorInvites   OrderInvite[]      @relation("TutorInvites")
+  studentInvites OrderInvite[]      @relation("StudentInvites")
 }
 
 model TutorEducation {
@@ -92,7 +96,7 @@ model Category {
 model Order {
   id                String    @id @default(uuid()) @db.Uuid
   studentId         String    @db.Uuid
-  tutorId           String    @db.Uuid
+  tutorId           String?   @db.Uuid
   subjectId         String    @db.Uuid
   categoryId        String    @db.Uuid
   title             String
@@ -108,9 +112,12 @@ model Order {
   category          Category  @relation(fields: [categoryId], references: [id])
   student           User      @relation("StudentOrders", fields: [studentId], references: [id])
   subject           Subject   @relation(fields: [subjectId], references: [id])
-  tutor             User      @relation("TutorOrders", fields: [tutorId], references: [id])
+  tutor             User?     @relation("TutorOrders", fields: [tutorId], references: [id])
   reviews           Review[]
   sessions          Session[]
+
+  // Relations for invites
+  invites           OrderInvite[]
 }
 
 model Session {
@@ -162,4 +169,27 @@ model Message {
   // Relations
   chat      Chat      @relation(fields: [chatId], references: [id])
   sender    User      @relation(fields: [senderId], references: [id])
+}
+
+model OrderInvite {
+  id         String    @id @default(uuid()) @db.Uuid
+  orderId    String    @db.Uuid
+  tutorId    String    @db.Uuid
+  studentId  String    @db.Uuid
+  senderRole UserRole
+  status     InviteStatus
+  message    String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  // Relations
+  order      Order     @relation(fields: [orderId], references: [id])
+  tutor      User      @relation("TutorInvites", fields: [tutorId], references: [id])
+  student    User      @relation("StudentInvites", fields: [studentId], references: [id])
+}
+
+enum InviteStatus {
+  PENDING
+  ACCEPTED
+  REFUSED
 }
