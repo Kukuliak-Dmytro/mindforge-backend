@@ -1,0 +1,131 @@
+@import "tailwindcss";
+
+/* Root variables for borders and transitions */
+:root {
+  --smallBorder: 6px;
+  --mediumBorder: 12px;
+  --largeBorder: 24px;
+
+  --fastTransition: 0.2s ease-in-out;
+  --mediumTransition: 0.3s ease-in-out;
+  --slowTransition: 0.4s ease-in-out;
+}
+
+/* Base Theme */
+:root {
+  --color-primary: hsl(14, 96%, 65%);
+  --color-secondary: hsl(45, 100%, 55%);
+  --color-accent: hsl(173, 55%, 74%);
+  --color-danger: hsl(5, 75%, 57%);
+  --color-white-bg: hsl(60, 40%, 98%);
+  --color-white-fg: hsl(60, 43%, 96%);
+  --color-rich-black: #0B0702;
+  --color-dark-gray: hsl(0, 0%, 22%);
+
+  --shadow-small: 0px 2px 2px 0 rgba(0, 0, 0, 0.2);
+  --shadow-medium: 0px 4px 4px 0 rgba(0, 0, 0, 0.2);
+  --shadow-double: 0 0 4px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Dark mode overrides - support both data-theme and class-based dark mode */
+[data-theme="dark"],
+.dark {
+  --color-primary: hsl(14, 96%, 35%);
+  --color-secondary: hsl(45, 100%, 45%);
+  --color-accent: hsl(173, 55%, 26%);
+  --color-danger: hsl(5, 75%, 45%);
+  --color-white-bg: hsl(60, 40%, 2%);
+  --color-white-fg: hsl(60, 43%, 4%);
+  --color-rich-black: hsl(33, 69%, 97%);
+  --color-dark-gray: hsl(0, 0%, 78%);
+  
+  --shadow-small: 0px 2px 4px 0 rgba(96, 96, 96, 0.2);
+  --shadow-medium: 0px 4px 8px 0 rgba(96, 96, 96, 0.2);
+  --shadow-double: 0 0 8px 8px rgba(94, 94, 94, 0.2);
+}
+
+/* Tailwind theme variables */
+@theme {
+  /* Colors */
+  --color-primary: var(--color-primary);
+  --color-secondary: var(--color-secondary);
+  --color-accent: var(--color-accent);
+  --color-danger: var(--color-danger);
+  --color-white-bg: var(--color-white-bg);
+  --color-white-fg: var(--color-white-fg);
+  --color-rich-black: var(--color-rich-black);
+  --color-dark-gray: var(--color-dark-gray);
+
+  /* Shadows */
+  --shadow-small: var(--shadow-small);
+  --shadow-medium: var(--shadow-medium);
+  --shadow-double: var(--shadow-double);
+  
+  /* Border radius */
+  --radius-small: var(--smallBorder);
+  --radius-medium: var(--mediumBorder);
+  --radius-large: var(--largeBorder);
+  
+  /* Fonts */
+  --font-sans: var(--font-montserrat-alternates), "Montserrat Alternates", sans-serif;
+}
+
+/* Base styles */
+* {
+  box-sizing: border-box;
+  font-family: var(--font-sans);
+}
+
+body {
+  min-height: 100vh;
+  background-color: var(--color-white-bg);
+  color: var(--color-rich-black);
+}
+
+/* Typography */
+h1 {
+  font-size: 48px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+h2 {
+  font-size: 40px;
+  font-weight: 600;
+}
+
+h3 {
+  font-size: 36px;
+  font-weight: 500;
+}
+
+h4 {
+  font-size: 24px;
+  font-weight: 500;
+}
+
+h5 {
+  font-size: 20px;
+  font-weight: 500;
+}
+
+h6 {
+  font-size: 18px;
+  font-weight: 500;
+}
+
+p {
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.p2 {
+  font-size: 16px;
+  font-weight: 400;
+ 
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
