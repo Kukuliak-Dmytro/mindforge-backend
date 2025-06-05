@@ -1,0 +1,195 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum UserRole {
+  STUDENT
+  TUTOR
+}
+
+model User {
+  id             String            @id @default(uuid()) @db.Uuid
+  email          String            @unique
+  firstName      String
+  lastName       String
+  avatarUrl      String?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  role           UserRole          @default(STUDENT)
+  bio            String?
+  phone          String?
+
+  // Common relations
+  sentMessages   Message[]
+  studentOrders  Order[]           @relation("StudentOrders")
+  studentReviews Review[]          @relation("StudentReviews")
+
+  // Tutor specific relations
+  tutorOrders    Order[]           @relation("TutorOrders")
+  tutorReviews   Review[]          @relation("TutorReviews")
+  education      TutorEducation[]
+  experiences    TutorExperience[]
+  subjects       TutorSubject[]
+
+  // Relations for invites
+  tutorInvites   OrderInvite[]      @relation("TutorInvites")
+  studentInvites OrderInvite[]      @relation("StudentInvites")
+}
+
+model TutorEducation {
+  id           String    @id @default(uuid()) @db.Uuid
+  userId       String    @db.Uuid
+  institution  String
+  fieldOfStudy String
+  degree       String
+  startDate    DateTime
+  endDate      DateTime?
+  user         User      @relation(fields: [userId], references: [id])
+}
+
+model TutorExperience {
+  id          String    @id @default(uuid()) @db.Uuid
+  userId      String    @db.Uuid
+  institution String
+  title       String
+  startDate   DateTime
+  endDate     DateTime?
+  user        User      @relation(fields: [userId], references: [id])
+}
+
+model TutorSubject {
+  id         String    @id @default(uuid()) @db.Uuid
+  userId     String    @db.Uuid
+  subjectId  String    @db.Uuid
+  categoryId String    @db.Uuid
+  price      Decimal
+
+  // Relations
+  user       User      @relation(fields: [userId], references: [id])
+  subject    Subject   @relation(fields: [subjectId], references: [id])
+  category   Category  @relation(fields: [categoryId], references: [id])
+
+  @@unique([userId, subjectId, categoryId])
+}
+
+model Subject {
+  id            String         @id @default(uuid()) @db.Uuid
+  name          String         @unique
+  tutorSubjects TutorSubject[]
+  orders        Order[]
+}
+
+model Category {
+  id            String         @id @default(uuid()) @db.Uuid
+  name          String         @unique
+  isRecurring   Boolean        @default(false)
+  tutorSubjects TutorSubject[]
+  orders        Order[]
+}
+
+model Order {
+  id                String    @id @default(uuid()) @db.Uuid
+  studentId         String    @db.Uuid
+  tutorId           String?   @db.Uuid
+  subjectId         String    @db.Uuid
+  categoryId        String    @db.Uuid
+  title             String
+  description       String?
+  createdAt         DateTime  @default(now())
+  status            String
+  totalPrice        Decimal
+  sessionsCount     Int
+  sessionsCompleted Int       @default(0)
+  chat              Chat?
+  
+  // Relations
+  category          Category  @relation(fields: [categoryId], references: [id])
+  student           User      @relation("StudentOrders", fields: [studentId], references: [id])
+  subject           Subject   @relation(fields: [subjectId], references: [id])
+  tutor             User?     @relation("TutorOrders", fields: [tutorId], references: [id])
+  reviews           Review[]
+  sessions          Session[]
+
+  // Relations for invites
+  invites           OrderInvite[]
+}
+
+model Session {
+  id             String    @id @default(uuid()) @db.Uuid
+  orderId        String    @db.Uuid
+  scheduledStart DateTime
+  scheduledEnd   DateTime
+  actualStart    DateTime?
+  actualEnd      DateTime?
+  status         String
+  meetingLink    String?
+  order          Order     @relation(fields: [orderId], references: [id])
+}
+
+model Review {
+  id        String    @id @default(uuid()) @db.Uuid
+  orderId   String    @db.Uuid
+  studentId String    @db.Uuid
+  tutorId   String    @db.Uuid
+  rating    Int
+  comment   String?
+  createdAt DateTime  @default(now())
+  
+  // Relations
+  order     Order     @relation(fields: [orderId], references: [id])
+  student   User      @relation("StudentReviews", fields: [studentId], references: [id])
+  tutor     User      @relation("TutorReviews", fields: [tutorId], references: [id])
+}
+
+model Chat {
+  id        String    @id @default(uuid()) @db.Uuid
+  orderId   String    @unique @db.Uuid
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  
+  // Relations
+  order     Order     @relation(fields: [orderId], references: [id])
+  messages  Message[]
+}
+
+model Message {
+  id        String    @id @default(uuid()) @db.Uuid
+  chatId    String    @db.Uuid
+  senderId  String    @db.Uuid
+  content   String
+  createdAt DateTime  @default(now())
+  isRead    Boolean   @default(false)
+  
+  // Relations
+  chat      Chat      @relation(fields: [chatId], references: [id])
+  sender    User      @relation(fields: [senderId], references: [id])
+}
+
+model OrderInvite {
+  id         String    @id @default(uuid()) @db.Uuid
+  orderId    String    @db.Uuid
+  tutorId    String    @db.Uuid
+  studentId  String    @db.Uuid
+  senderRole UserRole
+  status     InviteStatus
+  message    String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  // Relations
+  order      Order     @relation(fields: [orderId], references: [id])
+  tutor      User      @relation("TutorInvites", fields: [tutorId], references: [id])
+  student    User      @relation("StudentInvites", fields: [studentId], references: [id])
+}
+
+enum InviteStatus {
+  PENDING
+  ACCEPTED
+  REFUSED
+}
