@@ -6,7 +6,7 @@ A modern web platform for connecting employers with specialists.
 
 - **Framework**: Next.js
 - **Styling**: Tailwind CSS with Shadcn/UI
-- **State Management**: Redux Toolkit
+- **State Management**: Tanstack query
 - **Language**: TypeScript
 
 ## Project Structure
@@ -53,9 +53,9 @@ mindforge/
    ```bash
    npm install class-variance-authority clsx tailwind-merge
    ```
-5. Install Redux dependencies:
+5. Install Tansta dependencies:
    ```bash
-   npm install @reduxjs/toolkit react-redux
+   npm install @tanstack/react-query
    ```
 6. Start the development server:
    ```bash
