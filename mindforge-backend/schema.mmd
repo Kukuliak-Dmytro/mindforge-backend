@@ -1,0 +1,132 @@
+erDiagram
+    users {
+        uuid id PK
+        string email
+        string full_name
+        string avatar_url
+        timestamp created_at
+        boolean is_tutor
+        boolean is_student
+        json metadata
+    }
+    
+    profiles {
+        uuid id PK
+        uuid user_id FK
+        string bio
+        string contact_info
+        json preferences
+        timestamp updated_at
+    }
+    
+    tutor_education {
+        uuid id PK
+        uuid user_id FK
+        string degree
+        string institution
+        date start_date
+        date end_date
+        string field_of_study
+        string description
+    }
+    
+    tutor_experiences {
+        uuid id PK
+        uuid user_id FK
+        string title
+        string description
+        date start_date
+        date end_date
+        string institution
+    }
+    
+    subjects {
+        uuid id PK
+        string name
+        string description
+        string icon
+    }
+    
+    categories {
+        uuid id PK
+        string name
+        string description
+        boolean is_recurring
+        string icon
+    }
+    
+    tutor_subjects {
+        uuid id PK
+        uuid tutor_id FK
+        uuid subject_id FK
+        decimal hourly_rate
+        string description
+        int experience_years
+    }
+    
+    orders {
+        uuid id PK
+        uuid student_id FK
+        uuid tutor_id FK
+        uuid subject_id FK
+        uuid category_id FK
+        string title
+        string description
+        timestamp created_at
+        string status
+        decimal total_price
+        int sessions_count
+        int sessions_completed
+    }
+    
+    sessions {
+        uuid id PK
+        uuid order_id FK
+        timestamp scheduled_start
+        timestamp scheduled_end
+        timestamp actual_start
+        timestamp actual_end
+        string status
+        string meeting_link
+    }
+    
+    reviews {
+        uuid id PK
+        uuid order_id FK
+        uuid student_id FK
+        uuid tutor_id FK
+        int rating
+        string comment
+        timestamp created_at
+    }
+    
+    messages {
+        uuid id PK
+        uuid chat_id FK
+        uuid sender_id FK
+        string content
+        timestamp created_at
+        boolean is_read
+    }
+    
+    chats {
+        uuid id PK
+        uuid order_id FK
+        timestamp created_at
+        timestamp updated_at
+    }
+    
+    users ||--o{ profiles : "has"
+    users ||--o{ tutor_education : "has"
+    users ||--o{ tutor_experiences : "has"
+    users ||--o{ tutor_subjects : "offers"
+    subjects ||--o{ tutor_subjects : "taught by"
+    users ||--o{ orders : "creates as student"
+    users ||--o{ orders : "accepts as tutor"
+    subjects ||--o{ orders : "is about"
+    categories ||--o{ orders : "defines type"
+    orders ||--o{ sessions : "contains"
+    orders ||--o{ reviews : "receives"
+    orders ||--|| chats : "has"
+    chats ||--o{ messages : "contains"
+    users ||--o{ messages : "sends"
