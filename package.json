@@ -8,8 +8,8 @@
     "start": "npx tsx api.ts",
     "dev": "nodemon --watch src/**/*.ts --exec npx tsx api.ts",
     "docker:remove": "docker stop mindforge-backend 2>nul || echo Not running && docker rm -f mindforge-backend 2>nul || echo Not found",
-    "docker:rebuild": "npm run docker:remove && docker build --no-cache -t mindforge-backend .",
-    "docker:run": "npm run docker:remove && docker run -d --name mindforge-backend -p 4000:4000 --env-file .env mindforge-backend",
+    "docker:run": "docker run -d --name mindforge-backend -p 4000:4000 --env-file .env mindforge-backend",
+    "docker:rebuild": "npm run docker:remove && docker build --no-cache -t mindforge-backend . && npm run docker:run",
     "docker:restart": "docker restart mindforge-backend",
     "docker:stop": "docker stop mindforge-backend 2>nul || echo Not running && docker rm mindforge-backend 2>nul || echo Not found"
   },

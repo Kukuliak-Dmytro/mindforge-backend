@@ -4,8 +4,10 @@ import { z } from 'zod';
 import { BaseController } from './BaseController';
 import { AuthRequest } from '../types/User';
 import { supabaseAdmin } from '../clients/supabaseAdmin';
+import { OrderService } from '../services/order.service';
 
 const prisma = new PrismaClient();
+const orderService = new OrderService();
 
 // Validation schemas
 const tutorExperienceSchema = z.object({
@@ -282,6 +284,22 @@ class TutorProfileController extends BaseController {
       experiences: result.experiences,
       subjects: result.subjects,
     }, 'Tutor profile updated successfully');
+  };
+
+  // Toggle save an order as a tutor
+  public toggleSaveOrder = async (req: AuthRequest, res: Response) => {
+    if (!req.user || req.user.role !== 'TUTOR') return this.throwError('Unauthorized', 401);
+    const { orderId } = req.body;
+    if (!orderId) return this.throwError('orderId is required', 400);
+    const result = await orderService.toggleSaveOrderForTutor(req.user.id, orderId);
+    this.sendSuccess(res, result, result.saved ? 'Order saved' : 'Order unsaved');
+  };
+
+  // Get saved orders for a tutor
+  public getSavedOrders = async (req: AuthRequest, res: Response) => {
+    if (!req.user || req.user.role !== 'TUTOR') return this.throwError('Unauthorized', 401);
+    const savedOrders = await orderService.getSavedOrdersForTutor(req.user.id);
+    this.sendSuccess(res, savedOrders, 'Saved orders retrieved');
   };
 }
 

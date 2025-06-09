@@ -3,8 +3,10 @@ import { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
 import { BaseController } from './BaseController';
 import { AuthRequest } from '../types/User';
+import { OrderService } from '../services/order.service';
 
 const prisma = new PrismaClient();
+const orderService = new OrderService();
 
 // Validation schema for profile update
 const updateProfileSchema = z.object({
@@ -138,6 +140,22 @@ class StudentProfileController extends BaseController {
       avatarUrl: updatedUser.avatarUrl,
       updatedAt: updatedUser.updatedAt
     }, 'Student profile updated successfully');
+  };
+
+  // Toggle save a tutor as a student
+  public toggleSaveTutor = async (req: AuthRequest, res: Response) => {
+    if (!req.user || req.user.role !== 'STUDENT') return this.throwError('Unauthorized', 401);
+    const { tutorId } = req.body;
+    if (!tutorId) return this.throwError('tutorId is required', 400);
+    const result = await orderService.toggleSaveTutorForStudent(req.user.id, tutorId);
+    this.sendSuccess(res, result, result.saved ? 'Tutor saved' : 'Tutor unsaved');
+  };
+
+  // Get saved tutors for a student
+  public getSavedTutors = async (req: AuthRequest, res: Response) => {
+    if (!req.user || req.user.role !== 'STUDENT') return this.throwError('Unauthorized', 401);
+    const savedTutors = await orderService.getSavedTutorsForStudent(req.user.id);
+    this.sendSuccess(res, savedTutors, 'Saved tutors retrieved');
   };
 }
 

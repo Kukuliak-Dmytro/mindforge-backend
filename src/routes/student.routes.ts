@@ -14,4 +14,10 @@ router.get('/profile', (req, res) => studentProfileController.getStudentProfile(
 // Update student profile
 router.patch('/profile', (req, res) => studentProfileController.updateStudentProfile(req as AuthRequest, res));
 
+// Toggle save a tutor as a student
+router.post('/saved-tutors', (req, res) => studentProfileController.toggleSaveTutor(req as AuthRequest, res));
+
+// Get saved tutors for a student
+router.get('/saved-tutors', (req, res) => studentProfileController.getSavedTutors(req as AuthRequest, res));
+
 export default router; 

@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import jwt from 'jsonwebtoken';
 import { AuthRequest, User } from '../types/User';
+import prisma from '../utils/prisma';
 
 declare global {
   namespace Express {
@@ -66,6 +67,7 @@ export const authenticateToken = async (
       const decoded = jwt.verify(token, supabaseJwtSecret) as {
         sub: string; // Supabase uses 'sub' for user ID
         email: string;
+        role?: string;
       };
 
       // Create a role-based client for RLS
@@ -86,14 +88,26 @@ export const authenticateToken = async (
         }
       );
 
-      req.user = {
+      // Set req.user as a partial first
+      const partialUser = {
         id: decoded.sub,
         email: decoded.email,
       };
-      
+      // Fetch user role from DB
+      const dbUser = await prisma.user.findUnique({
+        where: { id: partialUser.id },
+        select: { role: true }
+      });
+      if (dbUser) {
+        req.user = {
+          ...partialUser,
+          role: dbUser.role,
+        } as User;
+      } else {
+        req.user = partialUser as any;
+      }
       // Attach the role-based client to the request
       req.supabaseRoleClient = supabaseRoleClient;
-      
       next();
       return;
     } catch (jwtError) {
@@ -122,14 +136,25 @@ export const authenticateToken = async (
         return;
       }
 
-      req.user = {
+      const partialUser2 = {
         id: user.id,
         email: user.email!,
       };
-      
+      // Fetch user role from DB
+      const dbUser2 = await prisma.user.findUnique({
+        where: { id: partialUser2.id },
+        select: { role: true }
+      });
+      if (dbUser2) {
+        req.user = {
+          ...partialUser2,
+          role: dbUser2.role,
+        } as User;
+      } else {
+        req.user = partialUser2 as any;
+      }
       // Attach the role-based client to the request
       req.supabaseRoleClient = supabaseRoleClient;
-      
       next();
     }
   } catch (error) {

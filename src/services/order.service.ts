@@ -111,4 +111,135 @@ export class OrderService {
       where: { id: orderId },
     });
   }
+
+  // Toggle save for an order as a tutor and return all saved orders
+  async toggleSaveOrderForTutor(tutorId: string, orderId: string) {
+    const existing = await prisma.savedOrder.findUnique({
+      where: { tutorId_orderId: { tutorId, orderId } },
+    });
+    let saved;
+    if (existing) {
+      await prisma.savedOrder.delete({
+        where: { tutorId_orderId: { tutorId, orderId } },
+      });
+      saved = false;
+    } else {
+      await prisma.savedOrder.create({
+        data: { tutorId, orderId },
+      });
+      saved = true;
+    }
+    // Always return the updated list
+    const savedOrders = await prisma.savedOrder.findMany({
+      where: { tutorId },
+      include: {
+        order: {
+          include: {
+            student: true,
+            subject: true,
+            category: true,
+          },
+        },
+      },
+    });
+    return { saved, savedOrders };
+  }
+
+  // Unsave an order as a tutor
+  async unsaveOrderForTutor(tutorId: string, orderId: string) {
+    return prisma.savedOrder.delete({
+      where: { tutorId_orderId: { tutorId, orderId } },
+    });
+  }
+
+  // Get saved orders for a tutor
+  async getSavedOrdersForTutor(tutorId: string) {
+    return prisma.savedOrder.findMany({
+      where: { tutorId },
+      include: {
+        order: {
+          include: {
+            student: true,
+            subject: true,
+            category: true,
+          },
+        },
+      },
+    });
+  }
+
+  // Toggle save for a tutor as a student
+  async toggleSaveTutorForStudent(studentId: string, tutorId: string) {
+    const existing = await prisma.savedTutor.findUnique({
+      where: { studentId_tutorId: { studentId, tutorId } },
+    });
+    if (existing) {
+      await prisma.savedTutor.delete({
+        where: { studentId_tutorId: { studentId, tutorId } },
+      });
+      return { saved: false };
+    } else {
+      await prisma.savedTutor.create({
+        data: { studentId, tutorId },
+      });
+      return { saved: true };
+    }
+  }
+
+  // Unsave a tutor as a student
+  async unsaveTutorForStudent(studentId: string, tutorId: string) {
+    return prisma.savedTutor.delete({
+      where: { studentId_tutorId: { studentId, tutorId } },
+    });
+  }
+
+  // Get saved tutors for a student
+  async getSavedTutorsForStudent(studentId: string) {
+    const savedTutors = await prisma.savedTutor.findMany({
+      where: { studentId },
+      include: {
+        tutor: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            avatarUrl: true,
+            bio: true,
+            education: true,
+            experiences: true,
+            subjects: {
+              include: {
+                subject: true,
+                category: true,
+              },
+            },
+            tutorReviews: {
+              select: {
+                rating: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    // Add average rating to each tutor
+    const result = savedTutors.map(saved => {
+      const tutor = saved.tutor as any;
+      let rating = null;
+      if (tutor && tutor.tutorReviews && tutor.tutorReviews.length > 0) {
+        const sum = tutor.tutorReviews.reduce((acc: number, r: any) => acc + r.rating, 0);
+        rating = sum / tutor.tutorReviews.length;
+      }
+      return {
+        ...saved,
+        tutor: {
+          ...tutor,
+          rating,
+        },
+      };
+    });
+
+    return result;
+  }
 } 

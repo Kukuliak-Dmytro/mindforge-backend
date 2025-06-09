@@ -40,6 +40,11 @@ model User {
   // Relations for invites
   tutorInvites   OrderInvite[]      @relation("TutorInvites")
   studentInvites OrderInvite[]      @relation("StudentInvites")
+
+  // Relations for saving
+  savedOrders      SavedOrder[]        @relation("SavedOrdersByTutor")
+  savedTutorsAsStudent SavedTutor[]    @relation("SavedTutorsStudent")
+  savedTutorsAsTutor   SavedTutor[]    @relation("SavedTutorsTutor")
 }
 
 model TutorEducation {
@@ -118,6 +123,9 @@ model Order {
 
   // Relations for invites
   invites           OrderInvite[]
+
+  // Relations for saving
+  savedByTutors SavedOrder[] @relation("SavedOrdersByOrder")
 }
 
 model Session {
@@ -192,4 +200,28 @@ enum InviteStatus {
   PENDING
   ACCEPTED
   REFUSED
+}
+
+model SavedOrder {
+  id        String   @id @default(uuid()) @db.Uuid
+  tutorId   String   @db.Uuid
+  orderId   String   @db.Uuid
+  createdAt DateTime @default(now())
+
+  tutor     User     @relation("SavedOrdersByTutor", fields: [tutorId], references: [id])
+  order     Order    @relation("SavedOrdersByOrder", fields: [orderId], references: [id])
+
+  @@unique([tutorId, orderId])
+}
+
+model SavedTutor {
+  id        String   @id @default(uuid()) @db.Uuid
+  studentId String   @db.Uuid
+  tutorId   String   @db.Uuid
+  createdAt DateTime @default(now())
+
+  student   User     @relation("SavedTutorsStudent", fields: [studentId], references: [id])
+  tutor     User     @relation("SavedTutorsTutor", fields: [tutorId], references: [id])
+
+  @@unique([studentId, tutorId])
 }
