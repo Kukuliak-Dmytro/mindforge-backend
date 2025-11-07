@@ -31,8 +31,14 @@ COPY --from=builder /app/src ./src
 COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/tsconfig.json ./tsconfig.json
 COPY --from=builder /app/api.ts ./api.ts
+COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/scripts ./scripts
 
 
+
+# Copy Prisma client from builder
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 
 # Use a non-root user for security best practices.
 RUN adduser -D -H -s /bin/false appuser
@@ -40,5 +46,5 @@ USER appuser
 
 EXPOSE 4000
 
-# Start the API server.
-CMD ["npm", "run", "start"]
+# Run entrypoint hook (checks DB and migrates if needed), then start the server
+CMD ["sh", "-c", "npx tsx scripts/docker-entrypoint.js && npx tsx api.ts"]

@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { studentProfileController } from '../controllers/studentProfile.controller';
-import { authenticateToken } from '../middleware/auth';
+import { authenticateToken } from '../middlewares/auth';
 import { AuthRequest } from '../types/User';
 
 const router = Router();

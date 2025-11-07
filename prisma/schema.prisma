@@ -24,6 +24,9 @@ model User {
   role           UserRole          @default(STUDENT)
   bio            String?
   phone          String?
+  
+  // Better Auth required fields
+  emailVerified  Boolean           @default(false)
 
   // Common relations
   sentMessages   Message[]
@@ -45,6 +48,10 @@ model User {
   savedOrders      SavedOrder[]        @relation("SavedOrdersByTutor")
   savedTutorsAsStudent SavedTutor[]    @relation("SavedTutorsStudent")
   savedTutorsAsTutor   SavedTutor[]    @relation("SavedTutorsTutor")
+  
+  // Better Auth relations
+  authSessions   AuthSession[]
+  accounts       Account[]
 }
 
 model TutorEducation {
@@ -224,4 +231,52 @@ model SavedTutor {
   tutor     User     @relation("SavedTutorsTutor", fields: [tutorId], references: [id])
 
   @@unique([studentId, tutorId])
+}
+
+// Better Auth Models
+model AuthSession {
+  id        String   @id @default(uuid()) @db.Uuid
+  expiresAt DateTime @db.Timestamptz(6)
+  token     String   @unique
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @db.Timestamptz(6)
+  ipAddress String?
+  userAgent String?
+  userId    String   @db.Uuid
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Account {
+  id                      String    @id @default(uuid()) @db.Uuid
+  accountId               String
+  providerId              String
+  userId                  String    @db.Uuid
+  accessToken             String?
+  refreshToken            String?
+  idToken                 String?
+  accessTokenExpiresAt    DateTime? @db.Timestamptz(6)
+  refreshTokenExpiresAt   DateTime? @db.Timestamptz(6)
+  scope                   String?
+  password                String?
+  createdAt               DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt               DateTime  @updatedAt @db.Timestamptz(6)
+
+  user                    User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([providerId, accountId])
+  @@index([userId])
+}
+
+model Verification {
+  id         String   @id @default(uuid()) @db.Uuid
+  identifier String
+  value      String
+  expiresAt  DateTime @db.Timestamptz(6)
+  createdAt  DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt  DateTime @updatedAt @db.Timestamptz(6)
+
+  @@index([identifier, value])
 }
