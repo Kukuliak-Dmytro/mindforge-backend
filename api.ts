@@ -1,13 +1,12 @@
 import express from "express";
 import errorHandler from "./src/middlewares/errorHandler";
 import router from "./src/routes/index";
-import corsMiddleware from "./src/middlewares/corsMiddleware";
+import cors from "cors";
 import { toNodeHandler } from "better-auth/node";
 import { auth } from "./src/auth";
 
 const app = express();
-// CORS middleware - must be registered first
-app.use(corsMiddleware);
+app.use(cors());
 
 // Better Auth routes - must be mounted before express.json()
 // Handle all /api/auth/* routes (Express v5 uses /*splat pattern)

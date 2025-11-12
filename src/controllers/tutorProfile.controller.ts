@@ -91,7 +91,6 @@ class TutorProfileController extends BaseController {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       include: {
-        tutorProfile: true,
         education: true,
         experiences: true,
         subjects: {
@@ -120,14 +119,14 @@ class TutorProfileController extends BaseController {
           firstName: user.firstName,
           lastName: user.lastName,
           avatarUrl: user.avatarUrl,
-          bio: user.tutorProfile?.bio ?? null,
-          phone: user.tutorProfile?.phone ?? null,
+          bio: user.bio,
+          phone: user.phone,
           updatedAt: user.updatedAt,
           createdAt: user.createdAt,
         },
-        education: user.tutorProfile?.education ?? [],
-        experiences: user.tutorProfile?.experiences ?? [],
-        subjects: user.tutorProfile?.subjects ?? [],
+        education: user.education,
+        experiences: user.experiences,
+        subjects: user.subjects,
       },
       "Tutor profile retrieved successfully"
     );
@@ -163,10 +162,11 @@ class TutorProfileController extends BaseController {
           data: { email: validatedData.email },
         });
       }
-      // Update basic user info if provided
+      // Update basic profile info if provided (excluding email, which is handled above)
       if (
         validatedData.firstName ||
         validatedData.lastName ||
+        validatedData.bio ||
         validatedData.avatarUrl
       ) {
         await tx.user.update({
@@ -174,53 +174,18 @@ class TutorProfileController extends BaseController {
           data: {
             firstName: validatedData.firstName,
             lastName: validatedData.lastName,
+            bio: validatedData.bio,
             avatarUrl: validatedData.avatarUrl,
           },
         });
       }
-
-      // Update or create tutor profile if bio or phone provided
-      if (validatedData.bio !== undefined || validatedData.phone !== undefined) {
-        const existingProfile = await tx.tutorProfile.findUnique({
-          where: { userId },
-        });
-
-        if (existingProfile) {
-          await tx.tutorProfile.update({
-            where: { userId },
-            data: {
-              bio: validatedData.bio,
-              phone: validatedData.phone,
-            },
-          });
-        } else {
-          await tx.tutorProfile.create({
-            data: {
-              userId,
-              bio: validatedData.bio,
-              phone: validatedData.phone,
-            },
-          });
-        }
-      }
-
-      // Ensure tutor profile exists (needed for education/experiences/subjects)
-      let tutorProfile = await tx.tutorProfile.findUnique({
-        where: { userId },
-      });
-      if (!tutorProfile) {
-        tutorProfile = await tx.tutorProfile.create({
-          data: { userId },
-        });
-      }
-      const tutorProfileId = tutorProfile.id;
 
       // Handle education updates
       if (validatedData.education) {
         if (validatedData.education.add?.length) {
           await tx.tutorEducation.createMany({
             data: validatedData.education.add.map((edu) => ({
-              tutorProfileId,
+              userId,
               ...edu,
             })),
           });
@@ -229,7 +194,7 @@ class TutorProfileController extends BaseController {
           await tx.tutorEducation.deleteMany({
             where: {
               id: { in: validatedData.education.remove },
-              tutorProfileId,
+              userId,
             },
           });
         }
@@ -240,7 +205,7 @@ class TutorProfileController extends BaseController {
         if (validatedData.experience.add?.length) {
           await tx.tutorExperience.createMany({
             data: validatedData.experience.add.map((exp) => ({
-              tutorProfileId,
+              userId,
               ...exp,
             })),
           });
@@ -249,7 +214,7 @@ class TutorProfileController extends BaseController {
           await tx.tutorExperience.deleteMany({
             where: {
               id: { in: validatedData.experience.remove },
-              tutorProfileId,
+              userId,
             },
           });
         }
@@ -281,7 +246,7 @@ class TutorProfileController extends BaseController {
 
           await tx.tutorSubject.createMany({
             data: validatedData.subjects.add.map((subject) => ({
-              tutorProfileId,
+              userId,
               ...subject,
             })),
           });
@@ -290,7 +255,7 @@ class TutorProfileController extends BaseController {
           await tx.tutorSubject.deleteMany({
             where: {
               OR: validatedData.subjects.remove.map((subject) => ({
-                tutorProfileId,
+                userId,
                 subjectId: subject.subjectId,
                 categoryId: subject.categoryId,
               })),
@@ -303,16 +268,12 @@ class TutorProfileController extends BaseController {
       const updatedUser = await tx.user.findUnique({
         where: { id: userId },
         include: {
-          tutorProfile: {
+          education: true,
+          experiences: true,
+          subjects: {
             include: {
-              education: true,
-              experiences: true,
-              subjects: {
-                include: {
-                  subject: true,
-                  category: true,
-                },
-              },
+              subject: true,
+              category: true,
             },
           },
         },
@@ -334,13 +295,13 @@ class TutorProfileController extends BaseController {
           firstName: result.firstName,
           lastName: result.lastName,
           avatarUrl: result.avatarUrl,
-          bio: result.tutorProfile?.bio ?? null,
-          phone: result.tutorProfile?.phone ?? null,
+          bio: result.bio,
+          phone: result.phone,
           updatedAt: result.updatedAt,
         },
-        education: result.tutorProfile?.education ?? [],
-        experiences: result.tutorProfile?.experiences ?? [],
-        subjects: result.tutorProfile?.subjects ?? [],
+        education: result.education,
+        experiences: result.experiences,
+        subjects: result.subjects,
       },
       "Tutor profile updated successfully"
     );

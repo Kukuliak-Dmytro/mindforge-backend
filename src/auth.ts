@@ -51,18 +51,4 @@ export const auth = betterAuth({
       token: "token",
     },
   },
-  hooks: {
-    session: {
-      async after({ session, user }) {
-        // Include role in session
-        return {
-          ...session,
-          user: {
-            ...session.user,
-            role: user.role as "STUDENT" | "TUTOR" | "ADMIN",
-          },
-        };
-      },
-    },
-  },
 });
