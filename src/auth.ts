@@ -2,10 +2,13 @@ import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import prisma from "./utils/prisma";
 
+const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
+
 export const auth = betterAuth({
   database: prismaAdapter(prisma, {
     provider: "postgresql",
   }),
+  trustedOrigins: [frontendUrl],
   advanced: {
     database: {
       generateId: () => crypto.randomUUID(),
@@ -33,6 +36,11 @@ export const auth = betterAuth({
         required: true,
         input: true,
       },
+      role: {
+        type: "string",
+        required: true,
+        input: false, // Don't allow direct input, set via database default
+      },
     },
   },
   session: {
@@ -41,6 +49,20 @@ export const auth = betterAuth({
       userId: "userId",
       expiresAt: "expiresAt",
       token: "token",
+    },
+  },
+  hooks: {
+    session: {
+      async after({ session, user }) {
+        // Include role in session
+        return {
+          ...session,
+          user: {
+            ...session.user,
+            role: user.role as "STUDENT" | "TUTOR" | "ADMIN",
+          },
+        };
+      },
     },
   },
 });

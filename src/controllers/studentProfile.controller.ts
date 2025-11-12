@@ -36,40 +36,52 @@ class StudentProfileController extends BaseController {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       include: {
-        // Include student-specific data
-        studentOrders: {
+        studentProfile: {
           include: {
-            subject: true,
-            category: true,
-            tutor: {
-              select: {
-                id: true,
-                firstName: true,
-                lastName: true,
-                avatarUrl: true,
+            // Include student-specific data
+            studentOrders: {
+              include: {
+                subject: true,
+                category: true,
+                tutorProfile: {
+                  include: {
+                    user: {
+                      select: {
+                        id: true,
+                        firstName: true,
+                        lastName: true,
+                        avatarUrl: true,
+                      },
+                    },
+                  },
+                },
               },
+              orderBy: {
+                createdAt: 'desc',
+              },
+              take: 5,
+            },
+            studentReviews: {
+              include: {
+                tutorProfile: {
+                  include: {
+                    user: {
+                      select: {
+                        id: true,
+                        firstName: true,
+                        lastName: true,
+                        avatarUrl: true,
+                      },
+                    },
+                  },
+                },
+              },
+              orderBy: {
+                createdAt: 'desc',
+              },
+              take: 5,
             },
           },
-          orderBy: {
-            createdAt: 'desc',
-          },
-          take: 5,
-        },
-        studentReviews: {
-          include: {
-            tutor: {
-              select: {
-                id: true,
-                firstName: true,
-                lastName: true,
-                avatarUrl: true,
-              },
-            },
-          },
-          orderBy: {
-            createdAt: 'desc',
-          },
-          take: 5,
         },
       },
     });
@@ -82,6 +94,27 @@ class StudentProfileController extends BaseController {
       this.throwError('User is not a student', 403);
     }
 
+    // Format orders and reviews to match expected response structure
+    const studentOrders = user.studentProfile?.studentOrders.map(order => ({
+      ...order,
+      tutor: order.tutorProfile ? {
+        id: order.tutorProfile.user.id,
+        firstName: order.tutorProfile.user.firstName,
+        lastName: order.tutorProfile.user.lastName,
+        avatarUrl: order.tutorProfile.user.avatarUrl,
+      } : null,
+    })) ?? [];
+
+    const studentReviews = user.studentProfile?.studentReviews.map(review => ({
+      ...review,
+      tutor: review.tutorProfile ? {
+        id: review.tutorProfile.user.id,
+        firstName: review.tutorProfile.user.firstName,
+        lastName: review.tutorProfile.user.lastName,
+        avatarUrl: review.tutorProfile.user.avatarUrl,
+      } : null,
+    })) ?? [];
+
     this.sendSuccess(res, {
       user: {
         id: user.id,
@@ -89,13 +122,13 @@ class StudentProfileController extends BaseController {
         firstName: user.firstName,
         lastName: user.lastName,
         avatarUrl: user.avatarUrl,
-        bio: user.bio,
-        phone: user.phone,
+        bio: user.studentProfile?.bio ?? null,
+        phone: user.studentProfile?.phone ?? null,
         updatedAt: user.updatedAt,
         createdAt: user.createdAt
       },
-      studentOrders: user.studentOrders,
-      studentReviews: user.studentReviews,
+      studentOrders,
+      studentReviews,
     }, 'Student profile retrieved successfully');
   };
 
@@ -117,28 +150,62 @@ class StudentProfileController extends BaseController {
 
     const validatedData = updateProfileSchema.parse(req.body);
 
-    // Update user data with profile fields
+    // Update user data (excluding profile fields)
     const updatedUser = await this.prisma.user.update({
       where: { id: userId },
       data: {
         ...(validatedData.firstName !== undefined && { firstName: validatedData.firstName }),
         ...(validatedData.lastName !== undefined && { lastName: validatedData.lastName }),
         ...(validatedData.email !== undefined && { email: validatedData.email }),
-        ...(validatedData.phone !== undefined && { phone: validatedData.phone }),
-        ...(validatedData.bio !== undefined && { bio: validatedData.bio }),
         ...(validatedData.avatarUrl !== undefined && { avatarUrl: validatedData.avatarUrl })
+      },
+      include: {
+        studentProfile: true,
+      }
+    });
+
+    // Update or create student profile if bio or phone provided
+    if (validatedData.bio !== undefined || validatedData.phone !== undefined) {
+      const existingProfile = await this.prisma.studentProfile.findUnique({
+        where: { userId },
+      });
+
+      if (existingProfile) {
+        await this.prisma.studentProfile.update({
+          where: { userId },
+          data: {
+            bio: validatedData.bio,
+            phone: validatedData.phone,
+          },
+        });
+      } else {
+        await this.prisma.studentProfile.create({
+          data: {
+            userId,
+            bio: validatedData.bio,
+            phone: validatedData.phone,
+          },
+        });
+      }
+    }
+
+    // Fetch updated profile
+    const finalUser = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        studentProfile: true,
       }
     });
 
     this.sendSuccess(res, {
-      id: updatedUser.id,
-      firstName: updatedUser.firstName,
-      lastName: updatedUser.lastName,
-      email: updatedUser.email,
-      phone: updatedUser.phone,
-      bio: updatedUser.bio,
-      avatarUrl: updatedUser.avatarUrl,
-      updatedAt: updatedUser.updatedAt
+      id: finalUser!.id,
+      firstName: finalUser!.firstName,
+      lastName: finalUser!.lastName,
+      email: finalUser!.email,
+      phone: finalUser!.studentProfile?.phone ?? null,
+      bio: finalUser!.studentProfile?.bio ?? null,
+      avatarUrl: finalUser!.avatarUrl,
+      updatedAt: finalUser!.updatedAt
     }, 'Student profile updated successfully');
   };
 

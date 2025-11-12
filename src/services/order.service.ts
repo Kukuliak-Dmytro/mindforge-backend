@@ -1,18 +1,37 @@
 import prisma from '../utils/prisma';
 
 export class OrderService {
+  // Helper: Get tutor profile ID from user ID
+  private async getTutorProfileId(tutorUserId: string): Promise<string | null> {
+    const profile = await prisma.tutorProfile.findUnique({
+      where: { userId: tutorUserId },
+      select: { id: true },
+    });
+    return profile?.id ?? null;
+  }
+
+  // Helper: Get student profile ID from user ID
+  private async getStudentProfileId(studentUserId: string): Promise<string | null> {
+    const profile = await prisma.studentProfile.findUnique({
+      where: { userId: studentUserId },
+      select: { id: true },
+    });
+    return profile?.id ?? null;
+  }
+
   // Create a new order
+  // studentId is student userId, will be converted to studentProfileId
   async createOrder(
     data: {
       title: string;
       description?: string;
       subjectId: string;
       categoryId: string;
-      tutorId?: string;
+      tutorId?: string; // This is tutor userId, will be converted to tutorProfileId
       totalPrice: number;
       sessionsCount?: number;
     },
-    studentId: string
+    studentUserId: string
   ) {
     // Fetch the category to check if it's recurring
     const category = await prisma.category.findUnique({
@@ -30,62 +49,114 @@ export class OrderService {
       }
     }
 
+    // Convert student userId to studentProfileId
+    const studentProfileId = await this.getStudentProfileId(studentUserId);
+    if (!studentProfileId) throw new Error('Student profile not found');
+
+    // Convert tutor userId to tutorProfileId if provided
+    let tutorProfileId: string | undefined = undefined;
+    if (data.tutorId) {
+      const profileId = await this.getTutorProfileId(data.tutorId);
+      if (!profileId) throw new Error('Tutor profile not found');
+      tutorProfileId = profileId;
+    }
+
     return prisma.order.create({
       data: {
-        ...data,
+        title: data.title,
+        description: data.description,
+        subjectId: data.subjectId,
+        categoryId: data.categoryId,
+        tutorProfileId,
+        totalPrice: data.totalPrice,
         sessionsCount,
-        studentId,
+        studentProfileId,
         status: 'PENDING',
       },
     });
   }
 
   // Edit an order (only by student)
+  // studentId is student userId, will be converted to studentProfileId
   async updateOrder(
     orderId: string,
-    studentId: string,
+    studentUserId: string,
     updates: Partial<{
       title: string;
       description: string;
       subjectId: string;
       categoryId: string;
-      tutorId: string;
+      tutorId: string; // This is tutor userId, will be converted to tutorProfileId
       totalPrice: number;
       sessionsCount: number;
       status: string;
     }>
   ) {
+    // Convert student userId to studentProfileId
+    const studentProfileId = await this.getStudentProfileId(studentUserId);
+    if (!studentProfileId) throw new Error('Student profile not found');
+
+    // Convert tutorId to tutorProfileId if provided
+    const updateData: any = { ...updates };
+    if (updates.tutorId !== undefined) {
+      if (updates.tutorId) {
+        const profileId = await this.getTutorProfileId(updates.tutorId);
+        if (!profileId) throw new Error('Tutor profile not found');
+        updateData.tutorProfileId = profileId;
+      } else {
+        updateData.tutorProfileId = null;
+      }
+      delete updateData.tutorId;
+    }
+
     return prisma.order.update({
       where: {
         id: orderId,
-        studentId,
+        studentProfileId,
       },
-      data: updates,
+      data: updateData,
     });
   }
 
   // Delete an order (only by student)
+  // studentId is student userId, will be converted to studentProfileId
   async deleteOrder(
     orderId: string,
-    studentId: string
+    studentUserId: string
   ) {
+    const studentProfileId = await this.getStudentProfileId(studentUserId);
+    if (!studentProfileId) throw new Error('Student profile not found');
+    
     await prisma.order.delete({
       where: {
         id: orderId,
-        studentId,
+        studentProfileId,
       },
     });
     return { success: true };
   }
 
   // Get all orders (optionally filtered by tutorId or studentId)
+  // tutorId and studentId are user IDs, will be converted to profile IDs
   async getOrders(
     filter?: { tutorId?: string; studentId?: string }
   ) {
+    let tutorProfileId: string | undefined = undefined;
+    if (filter?.tutorId) {
+      const profileId = await this.getTutorProfileId(filter.tutorId);
+      if (profileId) tutorProfileId = profileId;
+    }
+
+    let studentProfileId: string | undefined = undefined;
+    if (filter?.studentId) {
+      const profileId = await this.getStudentProfileId(filter.studentId);
+      if (profileId) studentProfileId = profileId;
+    }
+
     return prisma.order.findMany({
       where: {
-        ...(filter?.tutorId ? { tutorId: filter.tutorId } : {}),
-        ...(filter?.studentId ? { studentId: filter.studentId } : {}),
+        ...(tutorProfileId ? { tutorProfileId } : {}),
+        ...(studentProfileId ? { studentProfileId } : {}),
       },
       include: {
         category: {
@@ -113,29 +184,37 @@ export class OrderService {
   }
 
   // Toggle save for an order as a tutor and return all saved orders
-  async toggleSaveOrderForTutor(tutorId: string, orderId: string) {
+  // tutorId is tutor userId, will be converted to tutorProfileId
+  async toggleSaveOrderForTutor(tutorUserId: string, orderId: string) {
+    const tutorProfileId = await this.getTutorProfileId(tutorUserId);
+    if (!tutorProfileId) throw new Error('Tutor profile not found');
+
     const existing = await prisma.savedOrder.findUnique({
-      where: { tutorId_orderId: { tutorId, orderId } },
+      where: { tutorProfileId_orderId: { tutorProfileId, orderId } },
     });
     let saved;
     if (existing) {
       await prisma.savedOrder.delete({
-        where: { tutorId_orderId: { tutorId, orderId } },
+        where: { tutorProfileId_orderId: { tutorProfileId, orderId } },
       });
       saved = false;
     } else {
       await prisma.savedOrder.create({
-        data: { tutorId, orderId },
+        data: { tutorProfileId, orderId },
       });
       saved = true;
     }
     // Always return the updated list
     const savedOrders = await prisma.savedOrder.findMany({
-      where: { tutorId },
+      where: { tutorProfileId },
       include: {
         order: {
           include: {
-            student: true,
+            studentProfile: {
+              include: {
+                user: true,
+              },
+            },
             subject: true,
             category: true,
           },
@@ -146,20 +225,28 @@ export class OrderService {
   }
 
   // Unsave an order as a tutor
-  async unsaveOrderForTutor(tutorId: string, orderId: string) {
+  async unsaveOrderForTutor(tutorUserId: string, orderId: string) {
+    const tutorProfileId = await this.getTutorProfileId(tutorUserId);
+    if (!tutorProfileId) throw new Error('Tutor profile not found');
     return prisma.savedOrder.delete({
-      where: { tutorId_orderId: { tutorId, orderId } },
+      where: { tutorProfileId_orderId: { tutorProfileId, orderId } },
     });
   }
 
   // Get saved orders for a tutor
-  async getSavedOrdersForTutor(tutorId: string) {
+  async getSavedOrdersForTutor(tutorUserId: string) {
+    const tutorProfileId = await this.getTutorProfileId(tutorUserId);
+    if (!tutorProfileId) throw new Error('Tutor profile not found');
     return prisma.savedOrder.findMany({
-      where: { tutorId },
+      where: { tutorProfileId },
       include: {
         order: {
           include: {
-            student: true,
+            studentProfile: {
+              include: {
+                user: true,
+              },
+            },
             subject: true,
             category: true,
           },
@@ -169,42 +256,61 @@ export class OrderService {
   }
 
   // Toggle save for a tutor as a student
-  async toggleSaveTutorForStudent(studentId: string, tutorId: string) {
+  // studentId and tutorId are user IDs, will be converted to profile IDs
+  async toggleSaveTutorForStudent(studentUserId: string, tutorUserId: string) {
+    const studentProfileId = await this.getStudentProfileId(studentUserId);
+    if (!studentProfileId) throw new Error('Student profile not found');
+    
+    const tutorProfileId = await this.getTutorProfileId(tutorUserId);
+    if (!tutorProfileId) throw new Error('Tutor profile not found');
+
     const existing = await prisma.savedTutor.findUnique({
-      where: { studentId_tutorId: { studentId, tutorId } },
+      where: { studentProfileId_tutorProfileId: { studentProfileId, tutorProfileId } },
     });
     if (existing) {
       await prisma.savedTutor.delete({
-        where: { studentId_tutorId: { studentId, tutorId } },
+        where: { studentProfileId_tutorProfileId: { studentProfileId, tutorProfileId } },
       });
       return { saved: false };
     } else {
       await prisma.savedTutor.create({
-        data: { studentId, tutorId },
+        data: { studentProfileId, tutorProfileId },
       });
       return { saved: true };
     }
   }
 
   // Unsave a tutor as a student
-  async unsaveTutorForStudent(studentId: string, tutorId: string) {
+  async unsaveTutorForStudent(studentUserId: string, tutorUserId: string) {
+    const studentProfileId = await this.getStudentProfileId(studentUserId);
+    if (!studentProfileId) throw new Error('Student profile not found');
+    
+    const tutorProfileId = await this.getTutorProfileId(tutorUserId);
+    if (!tutorProfileId) throw new Error('Tutor profile not found');
+    
     return prisma.savedTutor.delete({
-      where: { studentId_tutorId: { studentId, tutorId } },
+      where: { studentProfileId_tutorProfileId: { studentProfileId, tutorProfileId } },
     });
   }
 
   // Get saved tutors for a student
-  async getSavedTutorsForStudent(studentId: string) {
+  async getSavedTutorsForStudent(studentUserId: string) {
+    const studentProfileId = await this.getStudentProfileId(studentUserId);
+    if (!studentProfileId) throw new Error('Student profile not found');
+
     const savedTutors = await prisma.savedTutor.findMany({
-      where: { studentId },
+      where: { studentProfileId },
       include: {
-        tutor: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            avatarUrl: true,
-            bio: true,
+        tutorProfile: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                avatarUrl: true,
+              },
+            },
             education: true,
             experiences: true,
             subjects: {
@@ -223,19 +329,24 @@ export class OrderService {
       },
     });
 
-    // Add average rating to each tutor
+    // Add average rating to each tutor and format response
     const result = savedTutors.map(saved => {
-      const tutor = saved.tutor as any;
+      const tutorProfile = saved.tutorProfile;
+      const tutor = tutorProfile.user;
       let rating = null;
-      if (tutor && tutor.tutorReviews && tutor.tutorReviews.length > 0) {
-        const sum = tutor.tutorReviews.reduce((acc: number, r: any) => acc + r.rating, 0);
-        rating = sum / tutor.tutorReviews.length;
+      if (tutorProfile.tutorReviews && tutorProfile.tutorReviews.length > 0) {
+        const sum = tutorProfile.tutorReviews.reduce((acc: number, r: any) => acc + r.rating, 0);
+        rating = sum / tutorProfile.tutorReviews.length;
       }
       return {
         ...saved,
         tutor: {
           ...tutor,
+          bio: tutorProfile.bio,
           rating,
+          education: tutorProfile.education,
+          experiences: tutorProfile.experiences,
+          subjects: tutorProfile.subjects,
         },
       };
     });

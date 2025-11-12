@@ -10,7 +10,11 @@ export class UserService {
         lastName: true,
         email: true,
         avatarUrl: true,
-        bio: true,
+        tutorProfile: {
+          select: {
+            bio: true,
+          },
+        },
       },
     });
   }

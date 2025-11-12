@@ -23,3 +23,4 @@
 - Update environment variables: remove `SUPABASE_*`, add `BETTER_AUTH_SECRET` and `BETTER_AUTH_URL`
 - Authentication endpoints now use Better Auth session cookies instead of JWT tokens
 - Existing users will need `emailVerified` field set (defaults to `false`)
+

@@ -39,8 +39,12 @@ export const authenticateToken = async (
     }
 
     // Attach session and user to request
+    // Ensure role is included from the user object
     req.session = session;
-    req.user = session.user as User;
+    req.user = {
+      ...session.user,
+      role: (session.user as any).role || 'STUDENT', // Fallback to STUDENT if role not present
+    } as User;
     
     next();
   } catch (error) {

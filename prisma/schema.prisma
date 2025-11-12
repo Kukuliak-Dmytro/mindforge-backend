@@ -22,72 +22,98 @@ model User {
   createdAt      DateTime          @default(now())
   updatedAt      DateTime          @updatedAt
   role           UserRole          @default(STUDENT)
-  bio            String?
-  phone          String?
   
   // Better Auth required fields
   emailVerified  Boolean           @default(false)
 
+  // Profile relations
+  studentProfile StudentProfile?
+  tutorProfile   TutorProfile?
+
   // Common relations
   sentMessages   Message[]
-  studentOrders  Order[]           @relation("StudentOrders")
-  studentReviews Review[]          @relation("StudentReviews")
-
-  // Tutor specific relations
-  tutorOrders    Order[]           @relation("TutorOrders")
-  tutorReviews   Review[]          @relation("TutorReviews")
-  education      TutorEducation[]
-  experiences    TutorExperience[]
-  subjects       TutorSubject[]
-
-  // Relations for invites
-  tutorInvites   OrderInvite[]      @relation("TutorInvites")
-  studentInvites OrderInvite[]      @relation("StudentInvites")
-
-  // Relations for saving
-  savedOrders      SavedOrder[]        @relation("SavedOrdersByTutor")
-  savedTutorsAsStudent SavedTutor[]    @relation("SavedTutorsStudent")
-  savedTutorsAsTutor   SavedTutor[]    @relation("SavedTutorsTutor")
   
   // Better Auth relations
   authSessions   AuthSession[]
   accounts       Account[]
 }
 
+model StudentProfile {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @unique @db.Uuid
+  bio       String?
+  phone     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Student-specific relations
+  studentOrders  Order[]           @relation("StudentOrders")
+  studentReviews Review[]          @relation("StudentReviews")
+  
+  // Relations for invites and saving
+  studentInvites OrderInvite[]      @relation("StudentInvites")
+  savedTutors    SavedTutor[]       @relation("SavedTutorsStudent")
+}
+
+model TutorProfile {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @unique @db.Uuid
+  bio       String?
+  phone     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Tutor-specific relations
+  tutorOrders    Order[]           @relation("TutorOrders")
+  tutorReviews   Review[]          @relation("TutorReviews")
+  education      TutorEducation[]
+  experiences    TutorExperience[]
+  subjects       TutorSubject[]
+  
+  // Relations for invites and saving
+  tutorInvites   OrderInvite[]      @relation("TutorInvites")
+  savedOrders    SavedOrder[]       @relation("SavedOrdersByTutor")
+  savedTutors    SavedTutor[]       @relation("SavedTutorsTutor")
+}
+
 model TutorEducation {
-  id           String    @id @default(uuid()) @db.Uuid
-  userId       String    @db.Uuid
-  institution  String
-  fieldOfStudy String
-  degree       String
-  startDate    DateTime
-  endDate      DateTime?
-  user         User      @relation(fields: [userId], references: [id])
+  id             String    @id @default(uuid()) @db.Uuid
+  tutorProfileId String    @db.Uuid
+  institution    String
+  fieldOfStudy   String
+  degree         String
+  startDate      DateTime
+  endDate        DateTime?
+  tutorProfile   TutorProfile @relation(fields: [tutorProfileId], references: [id], onDelete: Cascade)
 }
 
 model TutorExperience {
-  id          String    @id @default(uuid()) @db.Uuid
-  userId      String    @db.Uuid
-  institution String
-  title       String
-  startDate   DateTime
-  endDate     DateTime?
-  user        User      @relation(fields: [userId], references: [id])
+  id             String    @id @default(uuid()) @db.Uuid
+  tutorProfileId String    @db.Uuid
+  institution    String
+  title           String
+  startDate       DateTime
+  endDate         DateTime?
+  tutorProfile    TutorProfile @relation(fields: [tutorProfileId], references: [id], onDelete: Cascade)
 }
 
 model TutorSubject {
-  id         String    @id @default(uuid()) @db.Uuid
-  userId     String    @db.Uuid
-  subjectId  String    @db.Uuid
-  categoryId String    @db.Uuid
-  price      Decimal
+  id             String    @id @default(uuid()) @db.Uuid
+  tutorProfileId String    @db.Uuid
+  subjectId      String    @db.Uuid
+  categoryId     String    @db.Uuid
+  price          Decimal
 
   // Relations
-  user       User      @relation(fields: [userId], references: [id])
-  subject    Subject   @relation(fields: [subjectId], references: [id])
-  category   Category  @relation(fields: [categoryId], references: [id])
+  tutorProfile   TutorProfile @relation(fields: [tutorProfileId], references: [id], onDelete: Cascade)
+  subject        Subject      @relation(fields: [subjectId], references: [id])
+  category       Category     @relation(fields: [categoryId], references: [id])
 
-  @@unique([userId, subjectId, categoryId])
+  @@unique([tutorProfileId, subjectId, categoryId])
 }
 
 model Subject {
@@ -107,8 +133,8 @@ model Category {
 
 model Order {
   id                String    @id @default(uuid()) @db.Uuid
-  studentId         String    @db.Uuid
-  tutorId           String?   @db.Uuid
+  studentProfileId  String    @db.Uuid
+  tutorProfileId   String?   @db.Uuid
   subjectId         String    @db.Uuid
   categoryId        String    @db.Uuid
   title             String
@@ -121,10 +147,10 @@ model Order {
   chat              Chat?
   
   // Relations
-  category          Category  @relation(fields: [categoryId], references: [id])
-  student           User      @relation("StudentOrders", fields: [studentId], references: [id])
-  subject           Subject   @relation(fields: [subjectId], references: [id])
-  tutor             User?     @relation("TutorOrders", fields: [tutorId], references: [id])
+  category          Category      @relation(fields: [categoryId], references: [id])
+  studentProfile    StudentProfile @relation("StudentOrders", fields: [studentProfileId], references: [id])
+  subject           Subject       @relation(fields: [subjectId], references: [id])
+  tutorProfile      TutorProfile? @relation("TutorOrders", fields: [tutorProfileId], references: [id])
   reviews           Review[]
   sessions          Session[]
 
@@ -148,18 +174,18 @@ model Session {
 }
 
 model Review {
-  id        String    @id @default(uuid()) @db.Uuid
-  orderId   String    @db.Uuid
-  studentId String    @db.Uuid
-  tutorId   String    @db.Uuid
-  rating    Int
-  comment   String?
-  createdAt DateTime  @default(now())
+  id              String    @id @default(uuid()) @db.Uuid
+  orderId         String    @db.Uuid
+  studentProfileId String   @db.Uuid
+  tutorProfileId  String    @db.Uuid
+  rating          Int
+  comment          String?
+  createdAt       DateTime  @default(now())
   
   // Relations
-  order     Order     @relation(fields: [orderId], references: [id])
-  student   User      @relation("StudentReviews", fields: [studentId], references: [id])
-  tutor     User      @relation("TutorReviews", fields: [tutorId], references: [id])
+  order           Order          @relation(fields: [orderId], references: [id])
+  studentProfile  StudentProfile @relation("StudentReviews", fields: [studentProfileId], references: [id])
+  tutorProfile    TutorProfile   @relation("TutorReviews", fields: [tutorProfileId], references: [id])
 }
 
 model Chat {
@@ -187,20 +213,20 @@ model Message {
 }
 
 model OrderInvite {
-  id         String    @id @default(uuid()) @db.Uuid
-  orderId    String    @db.Uuid
-  tutorId    String    @db.Uuid
-  studentId  String    @db.Uuid
-  senderRole UserRole
-  status     InviteStatus
-  message    String?
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
+  id             String    @id @default(uuid()) @db.Uuid
+  orderId        String    @db.Uuid
+  tutorProfileId String    @db.Uuid
+  studentProfileId String  @db.Uuid
+  senderRole     UserRole
+  status         InviteStatus
+  message        String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   // Relations
-  order      Order     @relation(fields: [orderId], references: [id])
-  tutor      User      @relation("TutorInvites", fields: [tutorId], references: [id])
-  student    User      @relation("StudentInvites", fields: [studentId], references: [id])
+  order          Order     @relation(fields: [orderId], references: [id])
+  tutorProfile   TutorProfile @relation("TutorInvites", fields: [tutorProfileId], references: [id])
+  studentProfile StudentProfile @relation("StudentInvites", fields: [studentProfileId], references: [id])
 }
 
 enum InviteStatus {
@@ -210,27 +236,27 @@ enum InviteStatus {
 }
 
 model SavedOrder {
-  id        String   @id @default(uuid()) @db.Uuid
-  tutorId   String   @db.Uuid
-  orderId   String   @db.Uuid
-  createdAt DateTime @default(now())
+  id             String   @id @default(uuid()) @db.Uuid
+  tutorProfileId String   @db.Uuid
+  orderId        String   @db.Uuid
+  createdAt      DateTime @default(now())
 
-  tutor     User     @relation("SavedOrdersByTutor", fields: [tutorId], references: [id])
-  order     Order    @relation("SavedOrdersByOrder", fields: [orderId], references: [id])
+  tutorProfile   TutorProfile @relation("SavedOrdersByTutor", fields: [tutorProfileId], references: [id])
+  order          Order        @relation("SavedOrdersByOrder", fields: [orderId], references: [id])
 
-  @@unique([tutorId, orderId])
+  @@unique([tutorProfileId, orderId])
 }
 
 model SavedTutor {
-  id        String   @id @default(uuid()) @db.Uuid
-  studentId String   @db.Uuid
-  tutorId   String   @db.Uuid
-  createdAt DateTime @default(now())
+  id               String   @id @default(uuid()) @db.Uuid
+  studentProfileId String   @db.Uuid
+  tutorProfileId   String   @db.Uuid
+  createdAt        DateTime @default(now())
 
-  student   User     @relation("SavedTutorsStudent", fields: [studentId], references: [id])
-  tutor     User     @relation("SavedTutorsTutor", fields: [tutorId], references: [id])
+  studentProfile   StudentProfile @relation("SavedTutorsStudent", fields: [studentProfileId], references: [id])
+  tutorProfile      TutorProfile  @relation("SavedTutorsTutor", fields: [tutorProfileId], references: [id])
 
-  @@unique([studentId, tutorId])
+  @@unique([studentProfileId, tutorProfileId])
 }
 
 // Better Auth Models
